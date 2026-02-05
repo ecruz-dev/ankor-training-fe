@@ -1,0 +1,56 @@
+import type { Skill } from "../services/skillsService";
+
+export const SAMPLE_SKILLS: Skill[] = [
+  {
+    id: "e65e44d7-368d-4c0d-b40f-8c4fa5b18835",
+    org_id: "7498990d-aa4c-401d-92a7-67152514858a",
+    sport_id: "e252ebdf-a9f5-4f99-8e08-48d7afbabd9c",
+    category: "Technique",
+    title: "Ground Balls ƒ?\" Fundamentals",
+    description: "Core technique breakdown for securing ground balls.",
+    level: "all",
+    coaching_points: [
+      "Athletic stance",
+      "Head over the ball",
+      "Two hands low",
+      "Explode through the ball",
+    ],
+    visibility: "org",
+    status: "approved",
+    created_by: null,
+    created_at: "2025-10-22 13:27:25.687548+00",
+    updated_at: "2025-10-22 13:27:25.687548+00",
+  },
+  {
+    id: "f72300de-da29-42ef-aa75-77a78d4fcbde",
+    org_id: "7498990d-aa4c-401d-92a7-67152514858a",
+    sport_id: "e252ebdf-a9f5-4f99-8e08-48d7afbabd9c",
+    category: "Shooting",
+    title: "Speed",
+    description:
+      "Generate power through efficient body mechanics and release tempo.",
+    level: "all",
+    coaching_points: null,
+    visibility: "org",
+    status: "approved",
+    created_by: null,
+    created_at: "2025-10-23 00:45:33.097225+00",
+    updated_at: "2025-10-23 00:45:33.097225+00",
+  },
+  {
+    id: "6beaa709-3410-4540-bef7-fc0465c1c113",
+    org_id: "7498990d-aa4c-401d-92a7-67152514858a",
+    sport_id: "e252ebdf-a9f5-4f99-8e08-48d7afbabd9c",
+    category: "Stickwork",
+    title: "Quick Release",
+    description:
+      "Deliver quick, clean exchanges to maintain tempo and spacing in tight areas.",
+    level: "all",
+    coaching_points: null,
+    visibility: "org",
+    status: "approved",
+    created_by: null,
+    created_at: "2025-10-23 00:45:33.097225+00",
+    updated_at: "2025-10-23 00:45:33.097225+00",
+  },
+];
