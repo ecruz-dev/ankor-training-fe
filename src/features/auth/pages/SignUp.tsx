@@ -111,6 +111,8 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = React.useState(false);
+  const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = React.useState('');
   const [firstNameError, setFirstNameError] = React.useState(false);
   const [firstNameErrorMessage, setFirstNameErrorMessage] = React.useState('');
   const [lastNameError, setLasNameError] = React.useState(false);
@@ -119,13 +121,14 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
 
   const validateInputs = () => {
-    const email = document.getElementById('email') as HTMLInputElement;
-    const password = document.getElementById('password') as HTMLInputElement;
-    const name = document.getElementById('name') as HTMLInputElement;
+    const email = document.getElementById('email') as HTMLInputElement | null;
+    const password = document.getElementById('password') as HTMLInputElement | null;
+    const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement | null;
+    const typecode = document.getElementById('typecode') as HTMLInputElement | null;
 
     let isValid = true;
 
-    if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
+    if (!email?.value || !/\S+@\S+\.\S+/.test(email.value)) {
       setEmailError(true);
       setEmailErrorMessage('Please enter a valid email address.');
       isValid = false;
@@ -134,7 +137,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
       setEmailErrorMessage('');
     }
 
-    if (!password.value || password.value.length < 6) {
+    if (!password?.value || password.value.length < 6) {
       setPasswordError(true);
       setPasswordErrorMessage('Password must be at least 6 characters long.');
       isValid = false;
@@ -143,9 +146,22 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
       setPasswordErrorMessage('');
     }
 
-    if (!name.value || name.value.length < 1) {
+    if (!confirmPassword?.value) {
+      setConfirmPasswordError(true);
+      setConfirmPasswordErrorMessage('Please confirm your password.');
+      isValid = false;
+    } else if (confirmPassword.value !== password?.value) {
+      setConfirmPasswordError(true);
+      setConfirmPasswordErrorMessage('Passwords do not match.');
+      isValid = false;
+    } else {
+      setConfirmPasswordError(false);
+      setConfirmPasswordErrorMessage('');
+    }
+
+    if (!typecode?.value || typecode.value.length < 1) {
       setNameError(true);
-      setNameErrorMessage('Name is required.');
+      setNameErrorMessage('Type code is required.');
       isValid = false;
     } else {
       setNameError(false);
@@ -172,8 +188,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // keep your existing error flags respected
-        if (nameError || emailError || passwordError) return;
+        if (!validateInputs()) return;
 
         const form = new FormData(event.currentTarget);
 
@@ -181,10 +196,17 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
         const joinCode = String(form.get('typecode') || '').trim(); // "typecode" input -> joinCode
         const email = String(form.get('email') || '').trim();
         const password = String(form.get('password') || '');
+        const confirmPassword = String(form.get('confirmPassword') || '');
         const firstName = String(form.get('firstName') || '').trim();
         const lastName = String(form.get('lastName') || '').trim();
         const cellNumberRaw = form.get('cellNumber');
         const cellNumber = (cellNumberRaw ? String(cellNumberRaw) : '').trim() || undefined;
+
+        if (confirmPassword !== password) {
+          setConfirmPasswordError(true);
+          setConfirmPasswordErrorMessage('Passwords do not match.');
+          return;
+        }
 
         // username may not be present in your current form—fallback to email local-part
         const usernameField = String(form.get('username') || '').trim();
@@ -324,6 +346,23 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
                 error={passwordError}
                 helperText={passwordErrorMessage}
                 color={passwordError ? 'error' : 'primary'}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel htmlFor="confirmPassword">Confirm password</FormLabel>
+              <TextField
+                required
+                fullWidth
+                name="confirmPassword"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢"
+                type="password"
+                id="confirmPassword"
+                autoComplete="new-password"
+                variant="outlined"
+                error={confirmPasswordError}
+                helperText={confirmPasswordErrorMessage}
+                color={confirmPasswordError ? 'error' : 'primary'}
               />
             </FormControl>
 
