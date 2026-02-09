@@ -247,7 +247,7 @@ export async function listEvaluations(params: {
     team_name: row.team_name ?? null,
     coach_id: row.coach_id ?? null,
     notes: row.notes ?? null,
-    created_at: row.created_at,
+    created_at: row.created_at ?? row.createdAt ?? row.created ?? '',
   }))
 }
 

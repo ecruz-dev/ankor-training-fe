@@ -21,11 +21,17 @@ export default function EvaluationsListTable({
   const columns = React.useMemo<GridColDef<EvaluationListRow>[]>(
     () => [
       {
+        field: 'id',
+        headerName: 'Evaluation ID',
+        flex: 1.4,
+        minWidth: 240,
+      },
+      {
         field: 'created_at',
         headerName: 'Created',
         flex: 1,
         minWidth: 160,
-        valueFormatter: (p) => formatDateTime(p.value as string | null),
+        valueFormatter: (value) => formatDateTime(value as string | null),
       },
       {
         field: 'team_name',
@@ -48,18 +54,6 @@ export default function EvaluationsListTable({
           const ui = getEvaluationStatusUi((params.value as string | null) ?? null)
           return <Chip size="small" label={ui.label} color={ui.color} />
         },
-      },
-      {
-        field: 'notes',
-        headerName: 'Notes',
-        flex: 1.5,
-        minWidth: 240,
-      },
-      {
-        field: 'id',
-        headerName: 'Evaluation ID',
-        flex: 1.4,
-        minWidth: 240,
       },
       {
         field: 'actions',
