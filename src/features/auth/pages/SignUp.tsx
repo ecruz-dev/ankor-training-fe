@@ -442,11 +442,13 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
               control={<Checkbox name="termsAccepted" id="termsAccepted" color="primary" required />}
               label="I agree to the Terms of Service and Privacy Policy."
             />
-            <FormControlLabel
-              sx={{ gridColumn: { sm: '1 / -1' } }}
-              control={<Checkbox name="parentGuardian" id="parentGuardian" color="primary" />}
-              label="I'm a Parent/Guardian"
-            />
+            {role === 'athlete' && (
+              <FormControlLabel
+                sx={{ gridColumn: { sm: '1 / -1' } }}
+                control={<Checkbox name="parentGuardian" id="parentGuardian" color="primary" />}
+                label="I'm a Parent/Guardian"
+              />
+            )}
 
             <Button
               sx={{ gridColumn: { sm: '1 / -1' } }}
