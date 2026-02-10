@@ -175,6 +175,8 @@ export default function EvaluationsDetailPage() {
     activeCategories,
     subskillsByCategory,
     setSubskillsByCategory,
+    evaluations,
+    setEvaluations,
     subskillEvaluations,
     setSubskillEvaluations,
     orgId,

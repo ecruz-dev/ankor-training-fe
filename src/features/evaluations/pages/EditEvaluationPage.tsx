@@ -295,6 +295,8 @@ const navigate = useNavigate();
     activeCategories,
     subskillsByCategory,
     setSubskillsByCategory,
+    evaluations,
+    setEvaluations,
     subskillEvaluations,
     setSubskillEvaluations,
     orgId,

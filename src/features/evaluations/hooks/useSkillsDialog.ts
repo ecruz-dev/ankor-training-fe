@@ -1,5 +1,6 @@
 import * as React from 'react'
 import type {
+  EvaluationsState,
   ScorecardCategory,
   ScorecardSubskill,
   SubskillEvaluationsState,
@@ -12,6 +13,8 @@ type UseSkillsDialogArgs = {
   setSubskillsByCategory: React.Dispatch<
     React.SetStateAction<Record<string, ScorecardSubskill[]>>
   >
+  evaluations: EvaluationsState
+  setEvaluations: React.Dispatch<React.SetStateAction<EvaluationsState>>
   subskillEvaluations: SubskillEvaluationsState
   setSubskillEvaluations: React.Dispatch<
     React.SetStateAction<SubskillEvaluationsState>
@@ -33,10 +36,50 @@ type UseSkillsDialogResult = {
 const sortSkillsByPosition = (skills: ScorecardSubskill[]) =>
   [...skills].sort((a, b) => a.position - b.position)
 
+const normalizeRating = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null
+  const numeric = Number(value)
+  return Number.isNaN(numeric) ? null : numeric
+}
+
+const computeCategoryScore = ({
+  subskills,
+  overrides,
+  baseline,
+}: {
+  subskills: ScorecardSubskill[]
+  overrides: Record<string, number | null>
+  baseline: number | null
+}): number | null => {
+  if (subskills.length === 0) return baseline
+
+  const ratings: number[] = []
+
+  subskills.forEach((skill) => {
+    const key = skill.skill_id ?? skill.id
+    const override = overrides[key]
+    if (override !== null && override !== undefined) {
+      const numeric = normalizeRating(override)
+      if (numeric !== null) ratings.push(numeric)
+      return
+    }
+
+    if (baseline !== null && baseline !== undefined) {
+      ratings.push(baseline)
+    }
+  })
+
+  if (ratings.length === 0) return null
+  const total = ratings.reduce((sum, value) => sum + value, 0)
+  return total / ratings.length
+}
+
 export function useSkillsDialog({
   activeCategories,
   subskillsByCategory,
   setSubskillsByCategory,
+  evaluations,
+  setEvaluations,
   subskillEvaluations,
   setSubskillEvaluations,
   orgId,
@@ -115,14 +158,42 @@ export function useSkillsDialog({
           [skillDialogCategory.id]: localSubskillRatings,
         },
       }))
+
+      const dialogCategoryId = skillDialogCategory.id
+      const dialogSubskills =
+        subskillsByCategory[dialogCategoryId] ??
+        (skillDialogSkills.length > 0 ? skillDialogSkills : [])
+
+      const baseline =
+        normalizeRating(
+          evaluations[skillDialogAthlete]?.[dialogCategoryId] ?? null,
+        ) ?? null
+
+      const updatedScore = computeCategoryScore({
+        subskills: dialogSubskills,
+        overrides: localSubskillRatings,
+        baseline,
+      })
+
+      setEvaluations((prev) => ({
+        ...prev,
+        [skillDialogAthlete]: {
+          ...(prev[skillDialogAthlete] ?? {}),
+          [dialogCategoryId]: updatedScore,
+        },
+      }))
     }
     closeSkillsDialog()
   }, [
     closeSkillsDialog,
+    evaluations,
     localSubskillRatings,
+    setEvaluations,
     setSubskillEvaluations,
     skillDialogAthlete,
     skillDialogCategory,
+    skillDialogSkills,
+    subskillsByCategory,
   ])
 
   const handleSkillRatingChange = React.useCallback(

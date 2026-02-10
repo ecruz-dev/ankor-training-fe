@@ -178,6 +178,8 @@ export default function NewEvaluationDetailPage() {
     activeCategories,
     subskillsByCategory,
     setSubskillsByCategory,
+    evaluations,
+    setEvaluations,
     subskillEvaluations,
     setSubskillEvaluations,
     orgId,
