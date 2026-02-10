@@ -109,6 +109,7 @@ const navigate = useNavigate();
   // ≡ƒö╣ Save / detail state
   const [saving, setSaving] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [lowRatingCount, setLowRatingCount] = React.useState(0);
 
   const [loadingDetail, setLoadingDetail] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
@@ -310,6 +311,20 @@ const navigate = useNavigate();
     }
     setActiveCategoryIndex((prev) => Math.min(prev, activeCategories.length - 1));
   }, [activeCategories]);
+
+  React.useEffect(() => {
+    let count = 0;
+    for (const byCategory of Object.values(subskillEvaluations)) {
+      for (const ratings of Object.values(byCategory ?? {})) {
+        for (const value of Object.values(ratings ?? {})) {
+          if (value !== null && value !== undefined && value < 3) {
+            count += 1;
+          }
+        }
+      }
+    }
+    setLowRatingCount(count);
+  }, [subskillEvaluations]);
 
   // Γ£à keep activeAthleteId in sync with selection (mobile + general)
   React.useEffect(() => {
@@ -752,6 +767,11 @@ const navigate = useNavigate();
       return;
     }
 
+    if (lowRatingCount > 5) {
+      showToast("You can only give 5 ratings below 3.", "error");
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -853,6 +873,11 @@ const navigate = useNavigate();
   const handleSubmitEvaluation = async () => {
     if (!id) {
       console.warn("No evaluation id provided in route");
+      return;
+    }
+
+    if (lowRatingCount > 5) {
+      showToast("You can only give 5 ratings below 3.", "error");
       return;
     }
 

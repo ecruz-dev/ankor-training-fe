@@ -107,6 +107,7 @@ export default function NewEvaluationDetailPage() {
 
   // Save state
   const [saving, setSaving] = React.useState(false)
+  const [lowRatingCount, setLowRatingCount] = React.useState(0)
 
   // Bulk actions dialog state
   const [bulkDialogOpen, setBulkDialogOpen] = React.useState(false)
@@ -201,6 +202,20 @@ export default function NewEvaluationDetailPage() {
       Math.min(prev, activeCategories.length - 1),
     )
   }, [activeCategories])
+
+  React.useEffect(() => {
+    let count = 0
+    for (const byCategory of Object.values(subskillEvaluations)) {
+      for (const ratings of Object.values(byCategory ?? {})) {
+        for (const value of Object.values(ratings ?? {})) {
+          if (value !== null && value !== undefined && value < 3) {
+            count += 1
+          }
+        }
+      }
+    }
+    setLowRatingCount(count)
+  }, [subskillEvaluations])
 
   const skipMobileCategoryResetRef = React.useRef(false)
 
@@ -695,6 +710,11 @@ export default function NewEvaluationDetailPage() {
     }
     if (!coachId) {
       console.warn('Missing coach id from profile.')
+      return
+    }
+
+    if (lowRatingCount > 5) {
+      window.alert('You can only give 5 ratings below 3.')
       return
     }
 
