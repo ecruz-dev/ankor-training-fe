@@ -109,7 +109,9 @@ const navigate = useNavigate();
   // ≡ƒö╣ Save / detail state
   const [saving, setSaving] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
-  const [lowRatingCount, setLowRatingCount] = React.useState(0);
+  const [lowRatingCounts, setLowRatingCounts] = React.useState<
+    Array<{ athleteId: string; count: number }>
+  >([]);
 
   const [loadingDetail, setLoadingDetail] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
@@ -313,8 +315,9 @@ const navigate = useNavigate();
   }, [activeCategories]);
 
   React.useEffect(() => {
-    let count = 0;
-    for (const byCategory of Object.values(subskillEvaluations)) {
+    const counts: Array<{ athleteId: string; count: number }> = [];
+    for (const [athleteId, byCategory] of Object.entries(subskillEvaluations)) {
+      let count = 0;
       for (const ratings of Object.values(byCategory ?? {})) {
         for (const value of Object.values(ratings ?? {})) {
           if (value !== null && value !== undefined && value < 3) {
@@ -322,8 +325,11 @@ const navigate = useNavigate();
           }
         }
       }
+      if (count > 0) {
+        counts.push({ athleteId, count });
+      }
     }
-    setLowRatingCount(count);
+    setLowRatingCounts(counts);
   }, [subskillEvaluations]);
 
   // Γ£à keep activeAthleteId in sync with selection (mobile + general)
@@ -767,8 +773,8 @@ const navigate = useNavigate();
       return;
     }
 
-    if (lowRatingCount > 5) {
-      showToast("You can only give 5 ratings below 3.", "error");
+    if (lowRatingCounts.some((entry) => entry.count > 5)) {
+      showToast("You can only give 5 ratings below 3 per athlete.", "error");
       return;
     }
 
@@ -876,8 +882,8 @@ const navigate = useNavigate();
       return;
     }
 
-    if (lowRatingCount > 5) {
-      showToast("You can only give 5 ratings below 3.", "error");
+    if (lowRatingCounts.some((entry) => entry.count > 5)) {
+      showToast("You can only give 5 ratings below 3 per athlete.", "error");
       return;
     }
 
