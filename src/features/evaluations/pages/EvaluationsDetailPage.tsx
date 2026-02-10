@@ -31,6 +31,7 @@ import EvaluationSubskillsDialog from '../components/EvaluationSubskillsDialog'
 import PastEvaluationsPanel from '../components/PastEvaluationsPanel'
 import { useEvaluationLookups } from '../hooks/useEvaluationLookups'
 import { usePastEvaluations } from '../hooks/usePastEvaluations'
+import { useSkillsDialog } from '../hooks/useSkillsDialog'
 import { buildEvaluationItems } from '../utils/buildEvaluationItems'
 import { getRatingScale } from '../utils/getRatingScale'
 import { mapTeamAthletesToAthletes } from '../utils/mapTeamAthletes'
@@ -161,6 +162,24 @@ export default function EvaluationsDetailPage() {
     [categoriesByTemplate, selectedScorecardId],
   )
 
+  const {
+    skillDialogOpen,
+    skillDialogCategory,
+    skillDialogSkills,
+    localSubskillRatings,
+    openSkillsDialog,
+    closeSkillsDialog,
+    saveSkillsDialog,
+    handleSkillRatingChange,
+  } = useSkillsDialog({
+    activeCategories,
+    subskillsByCategory,
+    setSubskillsByCategory,
+    subskillEvaluations,
+    setSubskillEvaluations,
+    orgId,
+  })
+
   React.useEffect(() => {
     if (activeCategories.length === 0) {
       setActiveCategoryIndex(0)
@@ -199,93 +218,6 @@ export default function EvaluationsDetailPage() {
 
     setActiveCategoryIndex(0)
   }, [activeAthleteId, isMobile])
-
-  // ---------- Modal state for low score skills ----------
-
-  const [skillDialogOpen, setSkillDialogOpen] = React.useState(false)
-  const [skillDialogCategory, setSkillDialogCategory] =
-    React.useState<ScorecardCategory | null>(null)
-  const [skillDialogAthlete, setSkillDialogAthlete] =
-    React.useState<string | null>(null)
-  const [skillDialogSkills, setSkillDialogSkills] = React.useState<
-    ScorecardSubskill[]
-  >([])
-  const [localSubskillRatings, setLocalSubskillRatings] = React.useState<
-    Record<string, number | null>
-  >({})
-
-  const openSkillsDialog = React.useCallback(
-    (athleteId: string, categoryId: string) => {
-      const category = activeCategories.find((c) => c.id === categoryId) ?? null
-
-      setSkillDialogAthlete(athleteId)
-      setSkillDialogCategory(category)
-      setSkillDialogOpen(true)
-
-      ;(async () => {
-        try {
-          let skills = subskillsByCategory[categoryId]
-
-          if (!skills) {
-            try {
-              skills = await listScorecardSubskillsByCategory({
-                categoryId,
-                orgId,
-                limit: 200,
-                offset: 0,
-              })
-              setSubskillsByCategory((prev) => ({
-                ...prev,
-                [categoryId]: skills!,
-              }))
-            } catch (err) {
-              console.error('listScorecardSubskillsByCategory error:', err)
-              skills = []
-            }
-          }
-
-          setSkillDialogSkills(
-            [...(skills ?? [])].sort((a, b) => a.position - b.position),
-          )
-        } catch (err) {
-          console.error('Failed to load subskills', err)
-          setSkillDialogSkills([])
-        }
-      })()
-    },
-    [activeCategories, subskillsByCategory, orgId],
-  )
-
-  const closeSkillsDialog = () => {
-    setSkillDialogOpen(false)
-    setLocalSubskillRatings({})
-  }
-
-  const saveSkillsDialog = () => {
-    if (skillDialogAthlete && skillDialogCategory) {
-      setSubskillEvaluations((prev) => ({
-        ...prev,
-        [skillDialogAthlete]: {
-          ...(prev[skillDialogAthlete] ?? {}),
-          [skillDialogCategory.id]: localSubskillRatings,
-        },
-      }))
-    }
-    closeSkillsDialog()
-  }
-
-  React.useEffect(() => {
-    if (skillDialogOpen && skillDialogAthlete && skillDialogCategory) {
-      const currentSubskills =
-        subskillEvaluations[skillDialogAthlete]?.[skillDialogCategory.id] ?? {}
-      setLocalSubskillRatings(currentSubskills)
-    }
-  }, [
-    skillDialogOpen,
-    skillDialogAthlete,
-    skillDialogCategory,
-    subskillEvaluations,
-  ])
 
   // ---------- Columns: fixed category info + dynamic athlete columns ----------
 
@@ -1362,17 +1294,7 @@ export default function EvaluationsDetailPage() {
         categoryDescription={skillDialogCategory?.description ?? null}
         skills={skillDialogSkills}
         ratings={localSubskillRatings}
-        onRatingChange={(skillId, rating) => {
-          setLocalSubskillRatings((prev) => {
-            const next = { ...prev }
-            if (rating === null) {
-              delete next[skillId]
-            } else {
-              next[skillId] = rating
-            }
-            return next
-          })
-        }}
+        onRatingChange={handleSkillRatingChange}
         onCancel={closeSkillsDialog}
         onSave={saveSkillsDialog}
       />

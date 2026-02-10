@@ -27,6 +27,7 @@ import EvaluationBulkActionsDialog from "../components/EvaluationBulkActionsDial
 import EvaluationColumnMenu from "../components/EvaluationColumnMenu";
 import EvaluationSubskillsDialog from "../components/EvaluationSubskillsDialog";
 import { useEvaluationLookups } from "../hooks/useEvaluationLookups";
+import { useSkillsDialog } from "../hooks/useSkillsDialog";
 import { getRatingScale } from "../utils/getRatingScale";
 import { mapTeamAthletesToAthletes } from "../utils/mapTeamAthletes";
 import type {
@@ -142,22 +143,7 @@ const navigate = useNavigate();
     React.useState<string | null>(null);
   const [bulkCategoryIds, setBulkCategoryIds] = React.useState<string[]>([]);
 
-  // ---------- Modal state for low score skills ----------
-
-  const [skillDialogOpen, setSkillDialogOpen] = React.useState(false);
-  const [skillDialogCategory, setSkillDialogCategory] =
-    React.useState<ScorecardCategory | null>(null);
-  const [skillDialogAthlete, setSkillDialogAthlete] =
-    React.useState<string | null>(null);
-  const [skillDialogSkills, setSkillDialogSkills] = React.useState<
-    ScorecardSubskill[]
-  >([]);
-  const [localSubskillRatings, setLocalSubskillRatings] = React.useState<
-    Record<string, number | null>
-  >({});
-
   // ---------- Load existing evaluation detail ----------
-
 
   React.useEffect(() => {
     if (!id) {
@@ -296,6 +282,24 @@ const navigate = useNavigate();
     [categoriesByTemplate, selectedScorecardId],
   );
 
+  const {
+    skillDialogOpen,
+    skillDialogCategory,
+    skillDialogSkills,
+    localSubskillRatings,
+    openSkillsDialog,
+    closeSkillsDialog,
+    saveSkillsDialog,
+    handleSkillRatingChange,
+  } = useSkillsDialog({
+    activeCategories,
+    subskillsByCategory,
+    setSubskillsByCategory,
+    subskillEvaluations,
+    setSubskillEvaluations,
+    orgId,
+  });
+
   // Γ£à keep category index safe when categories change
   React.useEffect(() => {
     if (activeCategories.length === 0) {
@@ -316,81 +320,6 @@ const navigate = useNavigate();
       return selectedAthletes[0].id;
     });
   }, [selectedAthletes]);
-
-  // ---------- Low-score skills dialog ----------
-
-  const openSkillsDialog = React.useCallback(
-    (athleteId: string, categoryId: string) => {
-      const category = activeCategories.find((c) => c.id === categoryId) ?? null;
-
-      setSkillDialogAthlete(athleteId);
-      setSkillDialogCategory(category);
-      setSkillDialogOpen(true);
-
-      (async () => {
-        try {
-          let skills = subskillsByCategory[categoryId];
-
-          if (!skills) {
-            try {
-              skills = await listScorecardSubskillsByCategory({
-                categoryId,
-                orgId,
-                limit: 200,
-                offset: 0,
-              });
-              setSubskillsByCategory((prev) => ({
-                ...prev,
-                [categoryId]: skills!,
-              }));
-            } catch (err) {
-              console.error("listScorecardSubskillsByCategory error:", err);
-              skills = [];
-            }
-          }
-
-          setSkillDialogSkills(
-            [...(skills ?? [])].sort((a, b) => a.position - b.position),
-          );
-        } catch (err) {
-          console.error("Failed to load subskills", err);
-          setSkillDialogSkills([]);
-        }
-      })();
-    },
-    [activeCategories, subskillsByCategory, orgId],
-  );
-
-  const closeSkillsDialog = () => {
-    setSkillDialogOpen(false);
-    setLocalSubskillRatings({});
-  };
-
-  const saveSkillsDialog = () => {
-    if (skillDialogAthlete && skillDialogCategory) {
-      setSubskillEvaluations((prev) => ({
-        ...prev,
-        [skillDialogAthlete]: {
-          ...(prev[skillDialogAthlete] ?? {}),
-          [skillDialogCategory.id]: localSubskillRatings,
-        },
-      }));
-    }
-    closeSkillsDialog();
-  };
-
-  React.useEffect(() => {
-    if (skillDialogOpen && skillDialogAthlete && skillDialogCategory) {
-      const currentSubskills =
-        subskillEvaluations[skillDialogAthlete]?.[skillDialogCategory.id] ?? {};
-      setLocalSubskillRatings(currentSubskills);
-    }
-  }, [
-    skillDialogOpen,
-    skillDialogAthlete,
-    skillDialogCategory,
-    subskillEvaluations,
-  ]);
 
   // ---------- Mobile helpers ----------
 
@@ -1389,17 +1318,7 @@ const navigate = useNavigate();
         categoryDescription={skillDialogCategory?.description ?? null}
         skills={skillDialogSkills}
         ratings={localSubskillRatings}
-        onRatingChange={(skillId, rating) => {
-          setLocalSubskillRatings((prev) => {
-            const next = { ...prev };
-            if (rating === null) {
-              delete next[skillId];
-            } else {
-              next[skillId] = rating;
-            }
-            return next;
-          });
-        }}
+        onRatingChange={handleSkillRatingChange}
         onCancel={closeSkillsDialog}
         onSave={saveSkillsDialog}
       />
