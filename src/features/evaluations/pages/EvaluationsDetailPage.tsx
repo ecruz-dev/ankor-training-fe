@@ -462,6 +462,11 @@ export default function EvaluationsDetailPage() {
         return newRow
       }
 
+      if (newValue !== null && (newValue < 1 || newValue > 5)) {
+        window.alert('Values should be from 1 to 5.')
+        return oldRow
+      }
+
       const athlete = selectedAthletes.find((a) => a.id === changedField)
       if (!athlete) {
         return newRow
