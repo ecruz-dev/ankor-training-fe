@@ -776,7 +776,7 @@ export default function NewEvaluationDetailPage() {
        const newEvaluationId = result.data?.[0]?.id
 
       if (newEvaluationId) {      
-        navigate(`/evaluations/${newEvaluationId}`, { replace: true })
+        navigate(`/evaluations/${newEvaluationId}/edit`, { replace: true })
       } else {
         console.warn('Saved but could not find created evaluation id in result:', result)
       }
