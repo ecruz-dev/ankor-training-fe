@@ -479,6 +479,24 @@ export default function EvaluationsDetailPage() {
         },
       }))
 
+      // If the user edits the baseline score, drop any subskill overrides
+      // so the new category score is authoritative.
+      setSubskillEvaluations((prev) => {
+        const prevForAthlete = prev[athleteId]
+        if (!prevForAthlete || prevForAthlete[categoryId] === undefined) {
+          return prev
+        }
+
+        const { [categoryId]: _removed, ...restCats } = prevForAthlete
+        if (Object.keys(restCats).length === 0) {
+          const next = { ...prev }
+          delete next[athleteId]
+          return next
+        }
+
+        return { ...prev, [athleteId]: restCats }
+      })
+
       // If score < 3, open skills modal for that category
       if (newValue !== null && newValue < 3) {
         openSkillsDialog(athleteId, categoryId)

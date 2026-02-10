@@ -457,6 +457,24 @@ export default function NewEvaluationDetailPage() {
         [athleteId]: { ...(prev[athleteId] ?? {}), [categoryId]: newValue },
       }))
 
+      // If the user manually edits the baseline score, drop any subskill overrides
+      // so the new category score is what the grid shows and will be saved.
+      setSubskillEvaluations((prev) => {
+        const prevForAthlete = prev[athleteId]
+        if (!prevForAthlete || prevForAthlete[categoryId] === undefined) {
+          return prev
+        }
+
+        const { [categoryId]: _removed, ...restCats } = prevForAthlete
+        if (Object.keys(restCats).length === 0) {
+          const next = { ...prev }
+          delete next[athleteId]
+          return next
+        }
+
+        return { ...prev, [athleteId]: restCats }
+      })
+
       if (newValue !== null && newValue < 3) {
         openSkillsDialog(athleteId, categoryId)
       }
