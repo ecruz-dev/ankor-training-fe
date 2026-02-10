@@ -217,8 +217,6 @@ export default function NewEvaluationDetailPage() {
     setLowRatingCount(count)
   }, [subskillEvaluations])
 
-  const skipMobileCategoryResetRef = React.useRef(false)
-
   const moveToNextAthlete = React.useCallback(() => {
     if (!activeAthleteId) return
     let idx = selectedAthletes.findIndex((a) => a.id === activeAthleteId)
@@ -227,18 +225,8 @@ export default function NewEvaluationDetailPage() {
     const next = selectedAthletes[idx % selectedAthletes.length]
     console.log(`IDX = ${idx}`)
     if (!next) return
-    skipMobileCategoryResetRef.current = true
     setActiveAthleteId(next.id)
   }, [activeAthleteId, selectedAthletes])
-
-  React.useEffect(() => {
-    if (!isMobile) return
-    if (skipMobileCategoryResetRef.current) {
-      skipMobileCategoryResetRef.current = false
-      return
-    }
-    setActiveCategoryIndex(0)
-  }, [activeAthleteId, isMobile])
 
   // ---------- Columns + Rows ----------
 
