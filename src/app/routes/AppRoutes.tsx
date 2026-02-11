@@ -67,7 +67,7 @@ const EditDrillPage = lazy(() => import('../../features/drills/pages/EditDrillPa
 const ScorecardTemplatesPage = lazy(() => import('../../features/scorecards/pages/AdminScorecardTemplatesPage'))
 const ScorecarteTemplateDetailPage = lazy(() => import('../../features/scorecards/pages/AdminScorecardTemplateDetailPage'))
 const EvaluationsListPage = lazy(() => import('../../features/evaluations/pages/EvaluationsListPage'))
-const EvaluationsDetailPage = lazy(() => import('../../features/evaluations/pages/EvaluationsDetailPage'))
+const ViewEvaluationPage = lazy(() => import('../../features/evaluations/pages/ViewEvaluationPage'))
 const EditEvaluationPage = lazy(() => import('../../features/evaluations/pages/EditEvaluationPage'))
 const AthletesEvaluationReportPage = lazy(() => import('../../features/reports/pages/AthletesEvaluationReportPage'))
 const EvaluationReportListPage = lazy(() => import('../../features/reports/pages/EvaluationReportListPage'))
@@ -152,7 +152,7 @@ export default function AppRoutes() {
           />
           <Route path="evaluations" element={<EvaluationsListPage />} />      
           <Route path="evaluations/create" element={<NewEvaluationDetailPage />} />
-          <Route path="evaluations/:id" element={<EvaluationsDetailPage />} />
+          <Route path="evaluations/:id" element={<ViewEvaluationPage />} />
           <Route path="evaluations/:id/edit" element={<EditEvaluationPage />} />
           <Route path="reports/athletes-evaluations" element={<AthletesEvaluationReportPage />} />
           <Route path="reports/evaluation-reports" element={<EvaluationReportListPage />} />
