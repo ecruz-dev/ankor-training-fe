@@ -30,7 +30,7 @@ const toDisplayValue = (value: string | number | null | undefined) =>
   value === null || value === undefined || value === '' ? '-' : String(value)
 
 export default function ManageUsersPage() {
-  const { profile, loading } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const [searchText, setSearchText] = React.useState('')
   const [rows, setRows] = React.useState<UserRow[]>([])
   const [totalCount, setTotalCount] = React.useState<number | null>(null)
@@ -41,7 +41,7 @@ export default function ManageUsersPage() {
     let active = true
 
     const loadUsers = async () => {
-      if (loading) {
+      if (authLoading) {
         return
       }
       const resolvedOrgId = profile?.default_org_id?.trim()
@@ -74,7 +74,7 @@ export default function ManageUsersPage() {
     return () => {
       active = false
     }
-  }, [loading, profile])
+  }, [authLoading, profile])
 
   const filteredRows = React.useMemo(() => {
     const q = searchText.trim().toLowerCase()
