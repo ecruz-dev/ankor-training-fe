@@ -873,8 +873,7 @@ const navigate = useNavigate();
 
       const updated = await rpcBulkUpdateEvaluations(id, payload, { orgId });
 
-      console.log("Evaluation updated successfully:", updated.id);
-      // TODO: toast / navigate back if you want
+    // TODO: toast / navigate back if you want
     } catch (err) {
       console.error("Failed to update evaluation", err);
     } finally {

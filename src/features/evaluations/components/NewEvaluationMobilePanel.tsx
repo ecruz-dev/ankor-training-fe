@@ -82,8 +82,6 @@ export default function NewEvaluationMobilePanel({
   loadingPast,
   pastError,
 }: NewEvaluationMobilePanelProps) {
-
-  console.log(`mobile category score ${JSON.stringify(mobileCategoryScore)}`)
   return (
     <Stack spacing={2}>
       <Paper sx={{ p: 2 }}>

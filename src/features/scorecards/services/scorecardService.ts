@@ -332,8 +332,6 @@ export async function listScorecardTemplates(
   } catch {
     data = undefined;
   }
-  console.log("listScorecardTemplates response data:", data);
-
   if (!res.ok) {
     const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
     throw new Error(reason);
@@ -347,7 +345,6 @@ export async function listScorecardTemplates(
     (data as any).items ??
     (data as any).data ??
     [];
-  console.log(`Items loaded: ${JSON.stringify(items)}`);
   return Array.isArray(items) ? (items as ScorecardTemplateRow[]) : [];
 }
 
@@ -368,7 +365,6 @@ export async function listScorecardCategoriesByTemplate(
   if (!params.scorecardTemplateId?.trim()) {
     throw new Error("scorecardTemplateId is required.");
   }
-  console.log(`baseUrl: ${baseUrl}, params: ${JSON.stringify(params)}`);
   const qs = buildCategoriesQuery(params);
   const url = `${baseUrl}/functions/v1/api/scorecard/categories?${qs}`;
 
