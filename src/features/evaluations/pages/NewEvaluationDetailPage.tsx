@@ -107,7 +107,9 @@ export default function NewEvaluationDetailPage() {
 
   // Save state
   const [saving, setSaving] = React.useState(false)
-  const [lowRatingCount, setLowRatingCount] = React.useState(0)
+  const [lowRatingCount, setLowRatingCount] = React.useState<
+    { athleteId: string; count: number }[]
+  >([])
 
   // Bulk actions dialog state
   const [bulkDialogOpen, setBulkDialogOpen] = React.useState(false)
@@ -204,18 +206,26 @@ export default function NewEvaluationDetailPage() {
   }, [activeCategories])
 
   React.useEffect(() => {
-    let count = 0
-    for (const byCategory of Object.values(subskillEvaluations)) {
-      for (const ratings of Object.values(byCategory ?? {})) {
+    const nextCounts = selectedAthletes.map((athlete) => {
+      let count = 0
+      const byCategory = subskillEvaluations[athlete.id] ?? {}
+      for (const ratings of Object.values(byCategory)) {
         for (const value of Object.values(ratings ?? {})) {
           if (value !== null && value !== undefined && value < 3) {
             count += 1
           }
         }
       }
-    }
-    setLowRatingCount(count)
-  }, [subskillEvaluations])
+      return { athleteId: athlete.id, count }
+    })
+
+    setLowRatingCount(nextCounts)
+  }, [selectedAthletes, subskillEvaluations])
+
+  const hasExceededLowRatings = React.useMemo(
+    () => lowRatingCount.some((entry) => entry.count > 5),
+    [lowRatingCount],
+  )
 
   const moveToNextAthlete = React.useCallback(() => {
     if (!activeAthleteId) return
@@ -701,7 +711,7 @@ export default function NewEvaluationDetailPage() {
       return
     }
 
-    if (lowRatingCount > 5) {
+    if (hasExceededLowRatings) {
       window.alert('You can only give 5 ratings below 3.')
       return
     }

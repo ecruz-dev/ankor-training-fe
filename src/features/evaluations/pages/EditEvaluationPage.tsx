@@ -109,7 +109,9 @@ const navigate = useNavigate();
   // ≡ƒö╣ Save / detail state
   const [saving, setSaving] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
-  const [lowRatingCount, setLowRatingCount] = React.useState(0);
+  const [lowRatingCount, setLowRatingCount] = React.useState<
+    { athleteId: string; count: number }[]
+  >([]);
 
   const [loadingDetail, setLoadingDetail] = React.useState(false);
   const [detailError, setDetailError] = React.useState<string | null>(null);
@@ -313,18 +315,26 @@ const navigate = useNavigate();
   }, [activeCategories]);
 
   React.useEffect(() => {
-    let count = 0;
-    for (const byCategory of Object.values(subskillEvaluations)) {
-      for (const ratings of Object.values(byCategory ?? {})) {
+    const nextCounts = selectedAthletes.map((athlete) => {
+      let count = 0;
+      const byCategory = subskillEvaluations[athlete.id] ?? {};
+      for (const ratings of Object.values(byCategory)) {
         for (const value of Object.values(ratings ?? {})) {
           if (value !== null && value !== undefined && value < 3) {
             count += 1;
           }
         }
       }
-    }
-    setLowRatingCount(count);
-  }, [subskillEvaluations]);
+      return { athleteId: athlete.id, count };
+    });
+
+    setLowRatingCount(nextCounts);
+  }, [selectedAthletes, subskillEvaluations]);
+
+  const hasExceededLowRatings = React.useMemo(
+    () => lowRatingCount.some((entry) => entry.count > 5),
+    [lowRatingCount],
+  );
 
   // Γ£à keep activeAthleteId in sync with selection (mobile + general)
   React.useEffect(() => {
@@ -767,7 +777,8 @@ const navigate = useNavigate();
       return;
     }
 
-    if (lowRatingCount > 5) {
+    if (hasExceededLowRatings) {
+      console.log("hasExceededLowRatings is true");
       showToast("You can only give 5 ratings below 3.", "error");
       return;
     }
@@ -876,7 +887,7 @@ const navigate = useNavigate();
       return;
     }
 
-    if (lowRatingCount > 5) {
+    if (hasExceededLowRatings) {
       showToast("You can only give 5 ratings below 3.", "error");
       return;
     }
@@ -1023,7 +1034,7 @@ const navigate = useNavigate();
               activeCategories.length === 0
             }
           >
-            {saving ? "SavingΓÇª" : "Update evaluation"}
+            {saving ? "Saving" : "Update evaluation"}
           </Button>
            <Button
               variant="contained"
@@ -1392,6 +1403,22 @@ const navigate = useNavigate();
         }}
         onApply={handleApplyBulkEvaluation}
       />
+
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={3500}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setToastOpen(false)}
+          severity={toastSeverity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {toastMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
