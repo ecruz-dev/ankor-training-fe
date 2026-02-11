@@ -1,5 +1,13 @@
 import * as React from "react";
-import { Box, Button, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import AthleteFormFields from "../components/AthleteFormFields";
@@ -33,6 +41,7 @@ export default function EditAthletePage() {
   const [athlete, setAthlete] = React.useState<AthleteListItem | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [toastOpen, setToastOpen] = React.useState(false);
   const initializedRef = React.useRef(false);
 
   const toOptionalNumber = (value: string) => {
@@ -52,6 +61,7 @@ export default function EditAthletePage() {
     setErrors({});
     setSubmitError(null);
     setLoadError(null);
+    setToastOpen(false);
   }, [athleteId]);
 
   React.useEffect(() => {
@@ -145,6 +155,7 @@ export default function EditAthletePage() {
       const updated = await updateAthlete(athleteId, payload, { orgId });
       setAthlete(updated);
       setSubmitError(null);
+      setToastOpen(true);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to update athlete.";
@@ -258,6 +269,22 @@ export default function EditAthletePage() {
           />
         </AthleteFormFields>
       </Stack>
+
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={3000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setToastOpen(false)}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          Athlete record saved successfully.
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
