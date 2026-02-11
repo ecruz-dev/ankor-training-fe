@@ -23,7 +23,6 @@ export default function EditAthletePage() {
   const [form, setForm] = React.useState<AthleteFormState>(
     createInitialAthleteForm(),
   );
-  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [parentFullName, setParentFullName] = React.useState("");
   const [parentEmail, setParentEmail] = React.useState("");
   const [parentMobilePhone, setParentMobilePhone] = React.useState("");
@@ -46,7 +45,6 @@ export default function EditAthletePage() {
   React.useEffect(() => {
     initializedRef.current = false;
     setForm(createInitialAthleteForm());
-    setConfirmPassword("");
     setParentFullName("");
     setParentEmail("");
     setParentMobilePhone("");
@@ -117,18 +115,6 @@ export default function EditAthletePage() {
       requirePassword: false,
       requireUsername: false,
     });
-    const trimmedPassword = form.password.trim();
-    const trimmedConfirm = confirmPassword.trim();
-    if (trimmedPassword || trimmedConfirm) {
-      if (!trimmedPassword) {
-        nextErrors.confirm_password =
-          "Enter a new password before confirming it.";
-      } else if (!trimmedConfirm) {
-        nextErrors.confirm_password = "Confirm your new password.";
-      } else if (trimmedPassword !== trimmedConfirm) {
-        nextErrors.confirm_password = "Passwords do not match.";
-      }
-    }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -150,7 +136,6 @@ export default function EditAthletePage() {
         full_name: [form.firstName, form.lastName].filter(Boolean).join(" ").trim(),
         cell_number: form.cellNumber.trim() || null,
         graduation_year: toOptionalNumber(form.graduationYear),
-        password: trimmedPassword ? trimmedPassword : undefined,
         parent_email: parentEmail.trim() || null,
         parent_full_name: parentFullName.trim() || null,
         parent_mobile_phone: parentMobilePhone.trim() || null,
@@ -230,14 +215,8 @@ export default function EditAthletePage() {
           form={form}
           errors={errors}
           onFieldChange={handleChange}
-          showPassword
-          passwordLabel="New password (optional)"
-          passwordRequired={false}
+          showPassword={false}
           showUsername={false}
-          showConfirmPassword
-          confirmPassword={confirmPassword}
-          onConfirmPasswordChange={(event) => setConfirmPassword(event.target.value)}
-          confirmPasswordLabel="Confirm new password"
         >
           <Box sx={{ gridColumn: "1 / -1" }}>
             <Typography variant="subtitle2" color="text.secondary">
