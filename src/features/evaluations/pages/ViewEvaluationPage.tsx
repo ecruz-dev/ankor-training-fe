@@ -424,7 +424,7 @@ export default function ViewEvaluationPage() {
                 }}
               >
                 <Typography variant="body1" color="text.secondary">
-                  No evaluation data available.
+                  No evaluation data available
                 </Typography>
               </Box>
             )}
