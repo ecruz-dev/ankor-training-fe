@@ -190,11 +190,18 @@ export default function NewEvaluationMobilePanel({
                           .map((skill) => {
                             const subskillId = skill.skill_id ?? skill.id
                             const subskillKey = `${currentCategory.id}-${subskillId}`
-                            const ratingValue = subskillRatings[subskillId] ?? null
                             const ratingScale = getRatingScale(
                               skill.rating_min,
                               skill.rating_max,
                             )
+                            const baselineRating = mobileCategoryScore ?? null
+                            const useBaseline =
+                              baselineRating !== null &&
+                              ratingScale.includes(baselineRating)
+                            const ratingValue =
+                              subskillRatings[subskillId] ??
+                              subskillRatings[skill.id] ??
+                              (useBaseline ? baselineRating : null)
 
                             return (
                               <Paper key={subskillKey} variant="outlined" sx={{ p: 1.5 }}>
