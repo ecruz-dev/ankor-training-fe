@@ -305,12 +305,10 @@ export default function PracticePlansListPage() {
 
   const onDuplicate = () => {
     closeMenu();
-    console.log("Duplicate", menuRow?.id);
   };
 
   const onDelete = () => {
     closeMenu();
-    console.log("Delete", menuRow?.id);
   };
 
   const onCreate = () => {
