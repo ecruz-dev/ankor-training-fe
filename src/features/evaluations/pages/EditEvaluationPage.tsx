@@ -1125,13 +1125,22 @@ const navigate = useNavigate();
                           value={mobileCategoryScore}
                           onChange={(_, newValue: number | null) => {
                             if (!activeAthleteId || !currentCategory) return;
-                            void ensureMobileSubskillsLoaded(currentCategory.id);
+                            const categoryId = currentCategory.id;
+                            void ensureMobileSubskillsLoaded(categoryId);
 
                             setMobileCategoryScoreAndRollout(
                               activeAthleteId,
-                              currentCategory.id,
+                              categoryId,
                               newValue,
                             );
+
+                            if (newValue !== null && newValue < 3) {
+                              setExpandedSubskillsByCategory((prev) => ({
+                                ...prev,
+                                [categoryId]: true,
+                              }));
+                              return;
+                            }
 
                             if (newValue !== null) moveToNextAthlete();
                           }}
