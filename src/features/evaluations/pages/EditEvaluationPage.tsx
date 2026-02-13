@@ -1047,7 +1047,7 @@ const navigate = useNavigate();
                 activeCategories.length === 0
               }
             >
-              {submitting ? "SubmittingΓÇª" : "Submit evaluation"}
+              {submitting ? "Submitting" : "Submit evaluation"}
             </Button>
         </Box>
 
@@ -1125,22 +1125,13 @@ const navigate = useNavigate();
                           value={mobileCategoryScore}
                           onChange={(_, newValue: number | null) => {
                             if (!activeAthleteId || !currentCategory) return;
-                            const categoryId = currentCategory.id;
-                            void ensureMobileSubskillsLoaded(categoryId);
+                            void ensureMobileSubskillsLoaded(currentCategory.id);
 
                             setMobileCategoryScoreAndRollout(
                               activeAthleteId,
-                              categoryId,
+                              currentCategory.id,
                               newValue,
                             );
-
-                            if (newValue !== null && newValue < 3) {
-                              setExpandedSubskillsByCategory((prev) => ({
-                                ...prev,
-                                [categoryId]: true,
-                              }));
-                              return;
-                            }
 
                             if (newValue !== null) moveToNextAthlete();
                           }}
