@@ -1,7 +1,7 @@
 import { Box, Divider } from "@mui/material";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import ScorecardCategoriesGrid from "../components/detail/ScorecardCategoriesGrid";
-import ScorecardSubskillsGrid from "../components/detail/ScorecardSubskillsGrid";
+import ScorecardCategoriesList from "../components/detail/ScorecardCategoriesList";
+import ScorecardSubskillsList from "../components/detail/ScorecardSubskillsList";
 import ScorecardTemplateFormCard from "../components/detail/ScorecardTemplateFormCard";
 import ScorecardTemplateHeader from "../components/detail/ScorecardTemplateHeader";
 import useScorecardTemplateBuilder from "../hooks/useScorecardTemplateBuilder";
@@ -71,7 +71,7 @@ export default function EditScorecardPage() {
 
       <Divider sx={{ my: 3 }} />
 
-      <ScorecardCategoriesGrid
+      <ScorecardCategoriesList
         categories={categories}
         activeCategoryId={activeCategoryId}
         onAddCategory={addCategory}
@@ -80,7 +80,7 @@ export default function EditScorecardPage() {
         onRowUpdate={updateCategoryRow}
       />
 
-      <ScorecardSubskillsGrid
+      <ScorecardSubskillsList
         subskills={visibleSubskills}
         activeCategoryName={activeCategory?.name ?? null}
         skills={skills}
