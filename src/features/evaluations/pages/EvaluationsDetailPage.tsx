@@ -754,12 +754,7 @@ export default function EvaluationsDetailPage() {
 
       const result = await rpcBulkCreateEvaluations(payload as any, { orgId })
 
-      if (!result.ok) {
-        console.error('Bulk create evaluations failed:', result.error)
-      } else {
-        console.log('Evaluations saved successfully. Count:', result.count)
-        // TODO: toast / navigate if desired
-      }
+     
     } catch (err) {
       console.error('Failed to save evaluations', err)
     } finally {

@@ -778,7 +778,6 @@ const navigate = useNavigate();
     }
 
     if (hasExceededLowRatings) {
-      console.log("hasExceededLowRatings is true");
       showToast("You can only give 5 ratings below 3.", "error");
       return;
     }

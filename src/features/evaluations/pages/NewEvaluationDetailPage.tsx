@@ -17,6 +17,7 @@ import { useEvaluationLookups } from '../hooks/useEvaluationLookups'
 import { usePastEvaluations } from '../hooks/usePastEvaluations'
 import { useSkillsDialog } from '../hooks/useSkillsDialog'
 import { buildEvaluationItems } from '../utils/buildEvaluationItems'
+import { getRatingScale } from '../utils/getRatingScale'
 import { mapTeamAthletesToAthletes } from '../utils/mapTeamAthletes'
 import type {
   Athlete,
@@ -233,7 +234,6 @@ export default function NewEvaluationDetailPage() {
     if (idx < 0) return
     idx = idx + 1;
     const next = selectedAthletes[idx % selectedAthletes.length]
-    console.log(`IDX = ${idx}`)
     if (!next) return
     setActiveAthleteId(next.id)
   }, [activeAthleteId, selectedAthletes])
@@ -293,8 +293,9 @@ export default function NewEvaluationDetailPage() {
   // Mobile helper: lazy-load subskills only when needed
   const ensureMobileSubskillsLoaded = React.useCallback(
     async (categoryId: string) => {
-      if (!isMobile) return
-      if (subskillsByCategory[categoryId] !== undefined) return
+      if (!isMobile) return subskillsByCategory[categoryId] ?? []
+      const cached = subskillsByCategory[categoryId]
+      if (cached !== undefined) return cached
 
       try {
         const skills = await listScorecardSubskillsByCategory({
@@ -304,20 +305,30 @@ export default function NewEvaluationDetailPage() {
           offset: 0,
         })
 
+        const normalized = (skills ?? []) as ScorecardSubskill[]
+
         setSubskillsByCategory((prev) => ({
           ...prev,
-          [categoryId]: (skills ?? []) as ScorecardSubskill[],
+          [categoryId]: normalized,
         }))
+
+        return normalized
       } catch (err) {
         console.error('Failed to lazy-load subskills (mobile)', err)
         setSubskillsByCategory((prev) => ({ ...prev, [categoryId]: [] }))
+        return []
       }
     },
     [isMobile, subskillsByCategory, orgId],
   )
 
   const setMobileCategoryScoreAndRollout = React.useCallback(
-    (athleteId: string, categoryId: string, score: number | null) => {
+    (
+      athleteId: string,
+      categoryId: string,
+      score: number | null,
+      subskills?: ScorecardSubskill[] | null,
+    ) => {
       setEvaluations((prev) => ({
         ...prev,
         [athleteId]: { ...(prev[athleteId] ?? {}), [categoryId]: score },
@@ -325,8 +336,45 @@ export default function NewEvaluationDetailPage() {
 
       setSubskillEvaluations((prev) => {
         const prevForAthlete = prev[athleteId] ?? {}
-        const { [categoryId]: _removed, ...restCats } = prevForAthlete
-        return { ...prev, [athleteId]: restCats }
+
+        const removeCategory = () => {
+          const { [categoryId]: _removed, ...restCats } = prevForAthlete
+          if (Object.keys(restCats).length === 0) {
+            const next = { ...prev }
+            delete next[athleteId]
+            return next
+          }
+          return { ...prev, [athleteId]: restCats }
+        }
+
+        if (score === null) {
+          return removeCategory()
+        }
+
+        if (!subskills || subskills.length === 0) {
+          return removeCategory()
+        }
+
+        const nextForCategory: Record<string, number | null> = {}
+
+        subskills.forEach((skill) => {
+          const ratingScale = getRatingScale(skill.rating_min, skill.rating_max)
+          if (!ratingScale.includes(score)) return
+          const key = skill.skill_id ?? skill.id
+          nextForCategory[key] = score
+        })
+
+        if (Object.keys(nextForCategory).length === 0) {
+          return removeCategory()
+        }
+
+        return {
+          ...prev,
+          [athleteId]: {
+            ...prevForAthlete,
+            [categoryId]: nextForCategory,
+          },
+        }
       })
     },
     [],
@@ -387,9 +435,26 @@ export default function NewEvaluationDetailPage() {
   const handleMobileCategoryScoreChange = React.useCallback(
     (newValue: number | null) => {
       if (!activeAthleteId || !currentCategory) return
-      void ensureMobileSubskillsLoaded(currentCategory.id)
+      const categoryId = currentCategory.id
+      const cachedSubskills = subskillsByCategory[categoryId]
 
-      setMobileCategoryScoreAndRollout(activeAthleteId, currentCategory.id, newValue)
+      setMobileCategoryScoreAndRollout(
+        activeAthleteId,
+        categoryId,
+        newValue,
+        cachedSubskills,
+      )
+
+      if (newValue !== null && cachedSubskills === undefined) {
+        void ensureMobileSubskillsLoaded(categoryId).then((loaded) => {
+          setMobileCategoryScoreAndRollout(
+            activeAthleteId,
+            categoryId,
+            newValue,
+            loaded,
+          )
+        })
+      }
 
       if (newValue !== null) moveToNextAthlete()
     },
@@ -399,6 +464,7 @@ export default function NewEvaluationDetailPage() {
       ensureMobileSubskillsLoaded,
       moveToNextAthlete,
       setMobileCategoryScoreAndRollout,
+      subskillsByCategory,
     ],
   )
 

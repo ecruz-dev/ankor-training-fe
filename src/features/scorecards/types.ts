@@ -14,7 +14,7 @@ export type ScorecardTemplateListRow = {
   is_active: boolean;
   created_by: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string | null;
 };
 
 export type ScorecardCategoryRow = {

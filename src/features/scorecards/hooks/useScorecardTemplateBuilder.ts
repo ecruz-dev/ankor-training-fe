@@ -4,7 +4,11 @@ import {
   skillLabel,
   type Skill,
 } from "../../skills/services/skillsService";
-import { createScorecardTemplate } from "../services/scorecardService";
+import {
+  createScorecardTemplate,
+  getScorecardTemplateDetail,
+  updateScorecardTemplate,
+} from "../services/scorecardService";
 import { DEBUG_SPORT_ID } from "../constants";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import type {
@@ -15,6 +19,8 @@ import type {
 } from "../types";
 import {
   buildCreateTemplatePayload,
+  buildUpdateTemplatePayload,
+  isValidUuid,
   validateTemplateBeforeSave,
 } from "../utils/scorecardTemplateForm";
 
@@ -35,6 +41,8 @@ type UseScorecardTemplateBuilderResult = {
   skills: Skill[];
   skillsLoading: boolean;
   skillsError: string | null;
+  templateLoading: boolean;
+  templateError: string | null;
   skillTitleById: Record<string, string>;
   setTemplateField: (
     field: keyof ScorecardTemplateDraft,
@@ -67,8 +75,9 @@ export default function useScorecardTemplateBuilder({
   locationState,
   onSaved,
 }: UseScorecardTemplateBuilderParams): UseScorecardTemplateBuilderResult {
-  const { profile, user, loading } = useAuth();
-  const resolvedOrgId = profile?.default_org_id?.trim() || "";
+  const { profile, user, loading, orgId } = useAuth();
+  const resolvedOrgId =
+    orgId?.trim() || profile?.default_org_id?.trim() || "";
   const resolvedUserId = user?.id?.trim() || "";
   const [template, setTemplate] = React.useState<ScorecardTemplateDraft>({
     id: templateId ?? "new",
@@ -85,6 +94,13 @@ export default function useScorecardTemplateBuilder({
   const [skills, setSkills] = React.useState<Skill[]>([]);
   const [skillsLoading, setSkillsLoading] = React.useState(false);
   const [skillsError, setSkillsError] = React.useState<string | null>(null);
+  const [templateLoading, setTemplateLoading] = React.useState(false);
+  const [templateError, setTemplateError] = React.useState<string | null>(null);
+  const loadedTemplateIdRef = React.useRef<string | null>(null);
+  const initialCategoryIdsRef = React.useRef<string[]>([]);
+  const initialSubskillIdsRef = React.useRef<string[]>([]);
+  const initialCategoryMapRef = React.useRef<Record<string, ScorecardCategoryRow>>({});
+  const initialSubskillMapRef = React.useRef<Record<string, ScorecardSubskillRow>>({});
 
   const skillTitleById = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -107,6 +123,107 @@ export default function useScorecardTemplateBuilder({
       .catch((err) => setSkillsError(err?.message || "Failed to load skills"))
       .finally(() => setSkillsLoading(false));
   }, [loading, resolvedOrgId]);
+
+  React.useEffect(() => {
+    if (loading) return;
+    if (!resolvedOrgId) {
+      setTemplateError("Missing org_id for this account.");
+      return;
+    }
+    if (!templateId || templateId === "new") return;
+    if (!isValidUuid(templateId)) return;
+    if (loadedTemplateIdRef.current === templateId) return;
+
+    loadedTemplateIdRef.current = templateId;
+    let active = true;
+
+    const loadTemplate = async () => {
+      setTemplateLoading(true);
+      setTemplateError(null);
+      try {
+        const detail = await getScorecardTemplateDetail(templateId, {
+          orgId: resolvedOrgId,
+        });
+
+        if (!active) return;
+
+        if (detail.template) {
+          setTemplate((prev) => ({
+            ...prev,
+            id: templateId,
+            name: detail.template?.name ?? prev.name,
+            description: detail.template?.description ?? prev.description,
+            isActive:
+              typeof detail.template?.is_active === "boolean"
+                ? detail.template.is_active
+                : prev.isActive,
+          }));
+        }
+
+        const mappedCategories: ScorecardCategoryRow[] = (detail.categories ?? []).map(
+          (cat) => ({
+            id: cat.id,
+            template_id: cat.template_id,
+            name: cat.name ?? "",
+            description: cat.description ?? "",
+            position: cat.position,
+          }),
+        );
+
+        const mappedSubskills: ScorecardSubskillRow[] = (detail.subskills ?? []).map(
+          (sub) => ({
+            id: sub.id,
+            category_id: sub.category_id,
+            name: sub.name ?? "",
+            description: sub.description ?? "",
+            position: sub.position,
+            skill_id: sub.skill_id ?? "",
+          }),
+        );
+
+        setCategories(mappedCategories);
+        setSubskills(mappedSubskills);
+        initialCategoryIdsRef.current = mappedCategories
+          .map((cat) => cat.id)
+          .filter((id) => isValidUuid(id));
+        initialSubskillIdsRef.current = mappedSubskills
+          .map((sub) => sub.id)
+          .filter((id) => isValidUuid(id));
+        initialCategoryMapRef.current = mappedCategories.reduce<Record<string, ScorecardCategoryRow>>(
+          (acc, cat) => {
+            acc[cat.id] = cat;
+            return acc;
+          },
+          {},
+        );
+        initialSubskillMapRef.current = mappedSubskills.reduce<Record<string, ScorecardSubskillRow>>(
+          (acc, sub) => {
+            acc[sub.id] = sub;
+            return acc;
+          },
+          {},
+        );
+      } catch (err) {
+        console.error("Failed to load scorecard template details", err);
+        if (active) {
+          loadedTemplateIdRef.current = null;
+          setTemplateError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load scorecard template.",
+          );
+        }
+      } finally {
+        if (active) setTemplateLoading(false);
+      }
+    };
+
+    void loadTemplate();
+
+    return () => {
+      active = false;
+    };
+  }, [loading, resolvedOrgId, templateId]);
 
   React.useEffect(() => {
     if (!activeCategoryId && categories.length > 0) {
@@ -253,19 +370,118 @@ export default function useScorecardTemplateBuilder({
 
     setIsSaving(true);
     try {
-      const payload = buildCreateTemplatePayload({
-        template,
-        categories,
-        subskills,
-        orgId: resolvedOrgId,
-        createdBy: resolvedUserId,
-        sportId: DEBUG_SPORT_ID || undefined,
-      });
-      await createScorecardTemplate(payload);
+      const isEditing =
+        templateId && templateId !== "new" && isValidUuid(templateId);
+
+      if (isEditing) {
+        const currentCategoryIds = new Set(
+          categories.map((cat) => cat.id).filter((id) => isValidUuid(id)),
+        );
+
+        const categoryEdited = (cat: ScorecardCategoryRow) => {
+          const initial = initialCategoryMapRef.current[cat.id];
+          if (!initial) return false;
+          return (
+            cat.name.trim() !== initial.name.trim() ||
+            (cat.description ?? "") !== (initial.description ?? "") ||
+            Number(cat.position) !== Number(initial.position)
+          );
+        };
+
+        const categoriesToReplace = new Set<string>();
+        categories.forEach((cat) => {
+          if (isValidUuid(cat.id) && categoryEdited(cat)) {
+            categoriesToReplace.add(cat.id);
+          }
+        });
+
+        const removedCategoryIds = initialCategoryIdsRef.current.filter(
+          (id) => !currentCategoryIds.has(id) || categoriesToReplace.has(id),
+        );
+
+        const categoryIdsToAdd = new Set<string>();
+        const addCategories = categories.filter((cat) => {
+          if (!isValidUuid(cat.id)) {
+            categoryIdsToAdd.add(cat.id);
+            return true;
+          }
+          if (categoriesToReplace.has(cat.id)) {
+            categoryIdsToAdd.add(cat.id);
+            return true;
+          }
+          return false;
+        });
+
+        const currentSubskillById: Record<string, ScorecardSubskillRow> = {};
+        subskills.forEach((sub) => {
+          currentSubskillById[sub.id] = sub;
+        });
+
+        const subskillEdited = (sub: ScorecardSubskillRow) => {
+          const initial = initialSubskillMapRef.current[sub.id];
+          if (!initial) return false;
+          return (
+            sub.name.trim() !== initial.name.trim() ||
+            (sub.description ?? "") !== (initial.description ?? "") ||
+            Number(sub.position) !== Number(initial.position) ||
+            (sub.skill_id ?? "").trim() !== (initial.skill_id ?? "").trim() ||
+            sub.category_id !== initial.category_id
+          );
+        };
+
+        const editedSubskillIds = new Set<string>();
+        subskills.forEach((sub) => {
+          if (isValidUuid(sub.id) && subskillEdited(sub)) {
+            editedSubskillIds.add(sub.id);
+          }
+        });
+
+        const categoryIdsToRemoveOrReplace = new Set<string>(removedCategoryIds);
+
+        const removedSubskillIds = initialSubskillIdsRef.current.filter((id) => {
+          const current = currentSubskillById[id];
+          if (!current) return true;
+          if (editedSubskillIds.has(id)) return true;
+          if (categoryIdsToRemoveOrReplace.has(current.category_id)) return true;
+          return false;
+        });
+
+        const addSubskills = subskills.filter((sub) => {
+          const isNew = !isValidUuid(sub.id);
+          const isEdited = isValidUuid(sub.id) && editedSubskillIds.has(sub.id);
+          if (!isNew && !isEdited) return false;
+          if (categoryIdsToAdd.has(sub.category_id)) return false;
+          if (categoryIdsToRemoveOrReplace.has(sub.category_id)) return false;
+          return true;
+        });
+
+        const payload = buildUpdateTemplatePayload({
+          template,
+          subskills,
+          orgId: resolvedOrgId,
+          sportId: DEBUG_SPORT_ID || undefined,
+          addCategories,
+          addSubskills,
+          removeCategoryIds: removedCategoryIds,
+          removeSubskillIds: removedSubskillIds,
+        });
+
+        await updateScorecardTemplate(templateId, payload);
+      } else {
+        const payload = buildCreateTemplatePayload({
+          template,
+          categories,
+          subskills,
+          orgId: resolvedOrgId,
+          createdBy: resolvedUserId,
+          sportId: DEBUG_SPORT_ID || undefined,
+        });
+        await createScorecardTemplate(payload);
+      }
       onSaved();
     } catch (err: any) {
-      console.error("Create template failed", err);
-      alert(err?.message || "Failed to create template.");
+      console.error("Save template failed", err);
+      alert(err?.message || "Failed to save template.");
     } finally {
       setIsSaving(false);
     }
@@ -282,6 +498,8 @@ export default function useScorecardTemplateBuilder({
     skills,
     skillsLoading,
     skillsError,
+    templateLoading,
+    templateError,
     skillTitleById,
     setTemplateField,
     toggleTemplateActive,

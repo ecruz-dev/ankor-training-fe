@@ -19,7 +19,7 @@ export default function ScorecardTemplatesListFilters({
     >
       <TextField
         size="small"
-        placeholder="Search name, description, creatorƒ?İ"
+        placeholder="Search name, description, creator"
         value={searchText}
         onChange={(event) => onSearchChange(event.target.value)}
         InputProps={{

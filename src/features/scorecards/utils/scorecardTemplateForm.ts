@@ -1,4 +1,7 @@
-import type { CreateScorecardTemplateInput } from "../services/scorecardService";
+import type {
+  CreateScorecardTemplateInput,
+  UpdateScorecardTemplateInput,
+} from "../services/scorecardService";
 import type {
   ScorecardCategoryRow,
   ScorecardSubskillRow,
@@ -22,6 +25,17 @@ type BuildPayloadParams = {
   orgId: string;
   createdBy: string;
   sportId?: string;
+};
+
+type BuildUpdatePayloadParams = {
+  template: ScorecardTemplateDraft;
+  subskills: ScorecardSubskillRow[];
+  orgId: string;
+  sportId?: string;
+  addCategories: ScorecardCategoryRow[];
+  addSubskills: ScorecardSubskillRow[];
+  removeCategoryIds?: string[];
+  removeSubskillIds?: string[];
 };
 
 export const isValidUuid = (value: string) => UUID_RE.test(value);
@@ -110,5 +124,64 @@ export const buildCreateTemplatePayload = ({
     description: template.description?.trim() || null,
     isActive: Boolean(template.isActive),
     categories: mappedCats,
+  };
+};
+
+export const buildUpdateTemplatePayload = ({
+  template,
+  subskills,
+  orgId,
+  sportId,
+  addCategories,
+  addSubskills,
+  removeCategoryIds,
+  removeSubskillIds,
+}: BuildUpdatePayloadParams): UpdateScorecardTemplateInput => {
+  const sortedCategories = [...addCategories].sort(
+    (a, b) => a.position - b.position,
+  );
+
+  const mappedCats = sortedCategories.map((category) => {
+    const categorySubskills = subskills
+      .filter((row) => row.category_id === category.id)
+      .filter((row) => row.skill_id && isValidUuid(row.skill_id))
+      .sort((a, b) => a.position - b.position)
+      .map((row) => ({
+        name: row.name?.trim() || "",
+        description: row.description?.trim() || null,
+        position: row.position,
+        skill_id: row.skill_id,
+      }));
+
+    return {
+      name: category.name?.trim() || "",
+      description: category.description?.trim() || null,
+      position: category.position,
+      subskills: categorySubskills,
+    };
+  });
+
+  const mappedSubskills = addSubskills
+    .filter((row) => row.skill_id && isValidUuid(row.skill_id))
+    .filter((row) => row.category_id && isValidUuid(row.category_id))
+    .sort((a, b) => a.position - b.position)
+    .map((row) => ({
+      category_id: row.category_id,
+      name: row.name?.trim() || "",
+      description: row.description?.trim() || null,
+      position: row.position,
+      skill_id: row.skill_id,
+    }));
+
+  return {
+    org_id: orgId,
+    sport_id: sportId || null,
+    name: template.name.trim(),
+    description: template.description?.trim() || null,
+    isActive: Boolean(template.isActive),
+    add_categories: mappedCats,
+    remove_category_ids: removeCategoryIds ?? [],
+    add_subskills: mappedSubskills,
+    remove_subskill_ids: removeSubskillIds ?? [],
   };
 };

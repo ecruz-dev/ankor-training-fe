@@ -171,20 +171,6 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
     return isValid;
   };
 
-  // const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-  //   if (nameError || emailError || passwordError) {
-  //     event.preventDefault();
-  //     return;
-  //   }
-  //   const data = new FormData(event.currentTarget);
-  //   console.log({
-  //     name: data.get('name'),
-  //     lastName: data.get('lastName'),
-  //     email: data.get('email'),
-  //     password: data.get('password'),
-  //   });
-  // };
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -239,7 +225,6 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
               positions,
             });
             const res = await signUp(input);
-            console.log('Signup (athlete) OK:', res);
             navigate('/');
           } else {
             const input = makeCoachInput({
@@ -253,7 +238,6 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
               termsAccepted,
             });
             const res = await signUp(input);
-            console.log('Signup (coach) OK:', res);
             navigate('/');
           }
         } catch (err: any) {

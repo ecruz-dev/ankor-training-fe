@@ -1,86 +1,130 @@
 import * as React from "react";
-import { Box, Chip } from "@mui/material";
-import { DataGrid, type GridColDef, type GridRowParams } from "@mui/x-data-grid";
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  List,
+  ListItemButton,
+  ListItemText,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import type { ScorecardTemplateListRow } from "../../types";
-import { formatDateTime, formatEmptyValue } from "../../utils/formatters";
+import { formatDateTime } from "../../utils/formatters";
 
 type ScorecardTemplatesListTableProps = {
   rows: ScorecardTemplateListRow[];
+  loading?: boolean;
+  error?: string | null;
   onRowClick: (id: string) => void;
 };
 
-const NoFooter: React.FC = () => null;
-
 export default function ScorecardTemplatesListTable({
   rows,
+  loading = false,
+  error = null,
   onRowClick,
 }: ScorecardTemplatesListTableProps) {
-  const columns = React.useMemo<GridColDef<ScorecardTemplateListRow>[]>(
-    () => [
-      { field: "name", headerName: "Name", flex: 1.4, minWidth: 240 },
-      {
-        field: "is_active",
-        headerName: "Active",
-        width: 120,
-        sortable: false,
-        align: "center",
-        headerAlign: "center",
-        renderCell: (params) =>
-          params.value ? (
-            <Chip size="small" color="success" variant="outlined" label="Active" />
-          ) : (
-            <Chip size="small" variant="outlined" label="Inactive" />
-          ),
-      },
-      {
-        field: "created_by",
-        headerName: "Created By",
-        flex: 0.8,
-        minWidth: 160,
-        sortable: false,
-        valueFormatter: (params) => formatEmptyValue((params as any)?.value),
-      },
-      {
-        field: "updated_at",
-        headerName: "Updated",
-        minWidth: 200,
-        flex: 1,
-        valueFormatter: (params) => formatDateTime((params as any)?.value),
-        sortComparator: (a, b) =>
-          new Date(String(a)).getTime() - new Date(String(b)).getTime(),
-      },
-    ],
-    [],
-  );
-
-  const handleRowClick = React.useCallback(
-    (params: GridRowParams) => {
-      onRowClick(String(params.id));
-    },
-    [onRowClick],
-  );
-
   return (
-    <Box sx={{ height: 560, width: "100%" }}>
-      <DataGrid
-        rows={rows ?? []}
-        columns={columns ?? []}
-        getRowId={(row) => row.id}
-        rowSelection={false}
-        disableRowSelectionOnClick
-        hideFooterSelectedRowCount
-        slots={{ footer: NoFooter }}
-        onRowClick={handleRowClick}
-        sx={{
-          borderRadius: 2,
-          "& .MuiDataGrid-row:hover": { cursor: "pointer" },
-        }}
-        initialState={{
-          pagination: { paginationModel: { page: 0, pageSize: 10 } },
-          sorting: { sortModel: [{ field: "updated_at", sort: "desc" }] },
-        }}
-        pageSizeOptions={[5, 10, 25]}
-      />
+    <Box sx={{ width: "100%" }}>
+      <Paper variant="outlined" sx={{ overflow: "hidden", borderRadius: 2 }}>
+        {loading ? (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Loading scorecards...
+            </Typography>
+          </Box>
+        ) : error ? (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="body2" color="error">
+              {error}
+            </Typography>
+          </Box>
+        ) : rows.length === 0 ? (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              No scorecards found.
+            </Typography>
+          </Box>
+        ) : (
+          <List disablePadding>
+            {rows.map((row, idx) => {
+              const createdBy = row.created_by?.trim() || "";
+              const description = row.description?.trim() || "No description.";
+              const updatedLabel = formatDateTime(row.updated_at || row.created_at);
+
+              return (
+                <React.Fragment key={row.id}>
+                  <ListItemButton
+                    alignItems="flex-start"
+                    onClick={() => onRowClick(row.id)}
+                    sx={{ py: 1.5 }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          {row.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <Stack spacing={0.75} sx={{ mt: 0.5 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {description}
+                          </Typography>
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={1}
+                            sx={{
+                              alignItems: { xs: "flex-start", sm: "center" },
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <Chip
+                              size="small"
+                              color={row.is_active ? "success" : "default"}
+                              variant="outlined"
+                              label={row.is_active ? "Active" : "Inactive"}
+                            />
+                            <Typography variant="caption" color="text.secondary">
+                              Updated {updatedLabel}
+                            </Typography>
+                            {createdBy && (
+                              <Typography variant="caption" color="text.secondary">
+                                Created by {createdBy}
+                              </Typography>
+                            )}
+                          </Stack>
+                        </Stack>
+                      }
+                      secondaryTypographyProps={{ component: "div" }}
+                    />
+
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignSelf: "center", ml: 2 }}
+                    >
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onRowClick(row.id);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </Stack>
+                  </ListItemButton>
+                  {idx !== rows.length - 1 && <Divider />}
+                </React.Fragment>
+              );
+            })}
+          </List>
+        )}
+      </Paper>
     </Box>
   );
 }

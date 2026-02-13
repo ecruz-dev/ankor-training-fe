@@ -65,7 +65,7 @@ const ViewDrillPage = lazy(() => import('../../features/drills/pages/ViewDrillPa
 const NewDrillPage = lazy(() => import('../../features/drills/pages/NewDrillPage'))
 const EditDrillPage = lazy(() => import('../../features/drills/pages/EditDrillPage'))
 const ScorecardTemplatesPage = lazy(() => import('../../features/scorecards/pages/AdminScorecardTemplatesPage'))
-const ScorecarteTemplateDetailPage = lazy(() => import('../../features/scorecards/pages/AdminScorecardTemplateDetailPage'))
+const EditScorecardPage = lazy(() => import('../../features/scorecards/pages/EditScorecardPage'))
 const EvaluationsListPage = lazy(() => import('../../features/evaluations/pages/EvaluationsListPage'))
 const ViewEvaluationPage = lazy(() => import('../../features/evaluations/pages/ViewEvaluationPage'))
 const EditEvaluationPage = lazy(() => import('../../features/evaluations/pages/EditEvaluationPage'))
@@ -125,7 +125,8 @@ export default function AppRoutes() {
             }
           />
           <Route path="scorecards" element={<ScorecardTemplatesPage />} />
-          <Route path="scorecards/:id" element={<ScorecarteTemplateDetailPage />} />
+          <Route path="scorecards/:id" element={<EditScorecardPage />} />
+          <Route path="scorecards/:id/edit" element={<EditScorecardPage />} />
 
           {/* Other menu links */}
           <Route path="athletes" element={<AthletesListPage />} />

@@ -7,7 +7,8 @@ import useScorecardTemplatesList from "../hooks/useScorecardTemplatesList";
 
 export default function AdminScorecardTemplatesPage() {
   const navigate = useNavigate();
-  const { rows, searchText, setSearchText } = useScorecardTemplatesList();
+  const { rows, loading, error, searchText, setSearchText } =
+    useScorecardTemplatesList();
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -18,7 +19,9 @@ export default function AdminScorecardTemplatesPage() {
       />
       <ScorecardTemplatesListTable
         rows={rows}
-        onRowClick={(id) => navigate(`/scorecards/${id}`)}
+        loading={loading}
+        error={error}
+        onRowClick={(id) => navigate(`/scorecards/${id}/edit`)}
       />
     </Box>
   );
