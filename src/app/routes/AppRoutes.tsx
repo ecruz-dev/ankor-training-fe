@@ -42,6 +42,9 @@ const OrgSignUp = lazy(() => import('../../features/auth/pages/OrgSignUp'))
 
 // App shell + feature pages
 const HomeLayout = lazy(() => import('../../features/home/pages/HomePage'))
+const HomeDashboardPage = lazy(
+  () => import('../../features/home/pages/HomeDashboardPage'),
+)
 const OrganizationProfilePage = lazy(() => import('../../features/settings/pages/OrganizationProfile'))
 const ManageUsersPage = lazy(() => import('../../features/settings/pages/ManageUsersPage'))
 const AdminPanel = lazy(() => import('../../features/settings/pages/AdminPanel'))
@@ -100,7 +103,7 @@ export default function AppRoutes() {
           }
         >
           {/* Default landing inside the app */}
-          <Route index element={<Navigate to="/settings/organization" replace />} />
+          <Route index element={<HomeDashboardPage />} />
 
           {/* Settings */}
           <Route path="settings/organization" element={<OrganizationProfilePage />} />

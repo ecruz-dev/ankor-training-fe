@@ -826,31 +826,6 @@ export default function HomeLayout() {
       <Main open={isMdUp} sx={{ pb: showMobileBottomNav ? 10 : undefined }}>
         <DrawerHeader />
         <Outlet />
-
-        {location.pathname === '/' && (
-          <Box
-            sx={{
-              mt: 4,
-              display: 'grid',
-              placeItems: 'center',
-              textAlign: 'center',
-              gap: 1.5,
-            }}
-          >
-            <Box
-              component="img"
-              src={LOGO_SRC}
-              alt="Ankor Lacrosse Logo"
-              sx={{ width: 96, height: 96, objectFit: 'contain', opacity: 0.9 }}
-            />
-            <Typography variant="h5" fontWeight={700} gutterBottom>
-              Welcome to Ankor Training
-            </Typography>
-            <Typography color="text.secondary" gutterBottom>
-              Choose an option from the left menu to get started.
-            </Typography>
-          </Box>
-        )}
       </Main>
 
       {showMobileBottomNav && (
