@@ -17,27 +17,20 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
-import BoltIcon from '@mui/icons-material/Bolt'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
-import EmailIcon from '@mui/icons-material/Email'
-import WhatshotIcon from '@mui/icons-material/Whatshot'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import RepeatIcon from '@mui/icons-material/Repeat'
-import ScaleIcon from '@mui/icons-material/Scale'
+import AssignmentIcon from '@mui/icons-material/Assignment'
+import ShareIcon from '@mui/icons-material/Share'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
-import PrintIcon from '@mui/icons-material/Print'
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
-
-const TOP_NAV_ITEMS = [
-  'Feed',
-  'Workouts',
-  'Maxes/PR',
-  'Journal',
-  'Leaderboard',
-  'Docs & Links',
-]
+import { useAuth } from '../../../app/providers/AuthProvider'
+import {
+  getLatestWorkoutDrills,
+  getWorkoutSummary,
+  type WorkoutDrillLevel,
+} from '../../evaluations/api/evaluationsApi'
 
 const WEEK_DAYS = [
   { day: 'Sat', date: 24, dot: false },
@@ -49,14 +42,127 @@ const WEEK_DAYS = [
   { day: 'Fri', date: 30, dot: true },
 ]
 
-const SUMMARY_STATS = [
-  { label: 'Sets Completed', value: '0', icon: <BarChartIcon fontSize="small" /> },
-  { label: 'Total Reps', value: '0', icon: <RepeatIcon fontSize="small" /> },
-  { label: 'Tonnage', value: '0', icon: <ScaleIcon fontSize="small" /> },
-  { label: 'Session Duration', value: 'N/A', icon: <AccessTimeIcon fontSize="small" /> },
-]
-
 export default function HomeDashboardPage() {
+  const { orgId, athleteId } = useAuth()
+  const [summaryLoading, setSummaryLoading] = React.useState(false)
+  const [summaryError, setSummaryError] = React.useState<string | null>(null)
+  const [summary, setSummary] = React.useState({
+    totalReps: 0,
+    totalEvals: 0,
+  })
+  const [workoutLoading, setWorkoutLoading] = React.useState(false)
+  const [workoutError, setWorkoutError] = React.useState<string | null>(null)
+  const [workoutLevels, setWorkoutLevels] = React.useState<WorkoutDrillLevel[]>(
+    [],
+  )
+
+  React.useEffect(() => {
+    if (!orgId || !athleteId) return
+    let active = true
+
+    setSummaryLoading(true)
+    setSummaryError(null)
+
+    getWorkoutSummary({ orgId, athleteId, limit: 50, offset: 0 })
+      .then((data) => {
+        if (!active) return
+        setSummary({
+          totalReps: data.total_reps ?? 0,
+          totalEvals: data.total_evals ?? 0,
+        })
+      })
+      .catch((err: any) => {
+        if (!active) return
+        setSummaryError(err?.message || 'Failed to load session summary.')
+      })
+      .finally(() => {
+        if (active) setSummaryLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [orgId, athleteId])
+
+  React.useEffect(() => {
+    if (!orgId || !athleteId) return
+    let active = true
+
+    setWorkoutLoading(true)
+    setWorkoutError(null)
+
+    getLatestWorkoutDrills({ orgId, athleteId, limit: 50, offset: 0 })
+      .then(({ levels }) => {
+        if (!active) return
+        setWorkoutLevels(levels)
+      })
+      .catch((err: any) => {
+        if (!active) return
+        setWorkoutError(err?.message || 'Failed to load workout drills.')
+        setWorkoutLevels([])
+      })
+      .finally(() => {
+        if (active) setWorkoutLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [orgId, athleteId])
+
+  const totalRepsValue = summaryError
+    ? '-'
+    : summaryLoading
+    ? '...'
+    : String(summary.totalReps)
+  const totalEvalsValue = summaryError
+    ? '-'
+    : summaryLoading
+    ? '...'
+    : String(summary.totalEvals)
+
+  const summaryStats = React.useMemo(
+    () => [
+      {
+        label: 'Sets Completed',
+        value: '0',
+        icon: <BarChartIcon fontSize="small" />,
+      },
+      {
+        label: 'Total Reps',
+        value: totalRepsValue,
+        icon: <RepeatIcon fontSize="small" />,
+      },
+      {
+        label: 'Total Evaluations',
+        value: totalEvalsValue,
+        icon: <AssignmentIcon fontSize="small" />,
+      },
+      {
+        label: 'Session Duration',
+        value: 'N/A',
+        icon: <AccessTimeIcon fontSize="small" />,
+      },
+      {
+        label: 'Shared Plans',
+        value: '0',
+        icon: <ShareIcon fontSize="small" />,
+      },
+    ],
+    [totalEvalsValue, totalRepsValue],
+  )
+
+  const todayLabel = React.useMemo(() => {
+    const now = new Date()
+    return now.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }, [])
+
+  const hasDrills = workoutLevels.some((level) => level.drills.length > 0)
+
   return (
     <Box
       sx={{
@@ -68,61 +174,6 @@ export default function HomeDashboardPage() {
         p: { xs: 2, md: 3 },
       }}
     >
-      <Paper
-        elevation={0}
-        sx={{
-          bgcolor: 'grey.900',
-          color: 'common.white',
-          borderRadius: 3,
-          px: { xs: 2, md: 3 },
-          py: 1.5,
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Avatar
-            sx={{
-              bgcolor: 'common.white',
-              color: 'grey.900',
-              width: 28,
-              height: 28,
-            }}
-          >
-            <WhatshotIcon fontSize="small" />
-          </Avatar>
-          <Typography variant="subtitle2" fontWeight={700}>
-            Ankor
-          </Typography>
-        </Stack>
-        <Stack
-          direction="row"
-          spacing={2.5}
-          alignItems="center"
-          sx={{ flexGrow: 1, flexWrap: 'wrap' }}
-        >
-          {TOP_NAV_ITEMS.map((item) => (
-            <Typography
-              key={item}
-              variant="caption"
-              sx={{ letterSpacing: 0.9, textTransform: 'uppercase' }}
-            >
-              {item}
-            </Typography>
-          ))}
-        </Stack>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton color="inherit" size="small">
-            <EmailIcon fontSize="small" />
-          </IconButton>
-          <Avatar sx={{ bgcolor: 'warning.main', width: 28, height: 28 }}>
-            <WhatshotIcon fontSize="small" />
-          </Avatar>
-        </Stack>
-      </Paper>
-
       <Box>
         <Typography variant="h4" fontWeight={500}>
           Workout Entry
@@ -132,58 +183,7 @@ export default function HomeDashboardPage() {
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
           <Stack spacing={2.5}>
-            <Card elevation={0} sx={{ borderRadius: 3, boxShadow: 2 }}>
-              <CardContent sx={{ p: 3 }}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Avatar
-                      sx={{
-                        bgcolor: 'grey.100',
-                        color: 'text.primary',
-                        width: 32,
-                        height: 32,
-                      }}
-                    >
-                      <BoltIcon fontSize="small" />
-                    </Avatar>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      Exertion Score
-                    </Typography>
-                  </Stack>
-                  <Typography variant="body2" color="text.secondary">
-                    Connect a wearable via the TeamBuilder mobile app to get an
-                    Exertion Score.
-                  </Typography>
-                </Stack>
-              </CardContent>
-            </Card>
             <Stack spacing={1.5}>
-              <Button
-                variant="contained"
-                startIcon={<LibraryBooksIcon />}
-                sx={{
-                  bgcolor: 'grey.800',
-                  color: 'common.white',
-                  borderRadius: 999,
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: 'grey.900' },
-                }}
-              >
-                Program Library
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<PrintIcon />}
-                sx={{
-                  bgcolor: 'grey.800',
-                  color: 'common.white',
-                  borderRadius: 999,
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: 'grey.900' },
-                }}
-              >
-                Print Workout
-              </Button>
             </Stack>
           </Stack>
         </Grid>
@@ -279,35 +279,107 @@ export default function HomeDashboardPage() {
 
             <Card elevation={0} sx={{ borderRadius: 4, boxShadow: 2 }}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Stack spacing={3} alignItems="center" textAlign="center">
-                  <Typography
-                    variant="subtitle1"
-                    color="text.secondary"
-                    sx={{ alignSelf: 'flex-start' }}
-                  >
-                    January 27, 2026
+                <Stack spacing={2.5}>
+                  <Typography variant="subtitle1" color="text.secondary">
+                    {todayLabel}
                   </Typography>
-                  <Avatar
-                    sx={{
-                      bgcolor: 'transparent',
-                      border: '2px solid',
-                      borderColor: 'grey.700',
-                      color: 'text.primary',
-                      width: 56,
-                      height: 56,
-                    }}
-                  >
-                    <FitnessCenterIcon />
-                  </Avatar>
-                  <Typography variant="h5" fontWeight={500}>
-                    No Workout for the Selected Day
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    sx={{ textTransform: 'none', borderRadius: 999 }}
-                  >
-                    View Program Library
-                  </Button>
+
+                  {workoutLoading && (
+                    <Typography variant="body2" color="text.secondary">
+                      Loading today&apos;s workout...
+                    </Typography>
+                  )}
+
+                  {workoutError && (
+                    <Typography variant="body2" color="text.secondary">
+                      Unable to load today&apos;s workout.
+                    </Typography>
+                  )}
+
+                  {!workoutLoading && !workoutError && !hasDrills && (
+                    <Stack spacing={2} alignItems="center" textAlign="center">
+                      <Avatar
+                        sx={{
+                          bgcolor: 'transparent',
+                          border: '2px solid',
+                          borderColor: 'grey.700',
+                          color: 'text.primary',
+                          width: 56,
+                          height: 56,
+                        }}
+                      >
+                        <FitnessCenterIcon />
+                      </Avatar>
+                      <Typography variant="h5" fontWeight={500}>
+                        No Workout for Today
+                      </Typography>
+                    </Stack>
+                  )}
+
+                  {!workoutLoading && !workoutError && hasDrills && (
+                    <Stack spacing={2.5}>
+                      {workoutLevels.map((level) => {
+                        const levelTitle =
+                          level.title || (level.level ? `Level ${level.level}` : 'Level')
+                        return (
+                          <Box key={`${level.level}-${level.title}`}>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              justifyContent="space-between"
+                            >
+                              <Typography variant="subtitle1" fontWeight={600}>
+                                {levelTitle}
+                              </Typography>
+                              {level.targetReps !== null &&
+                              level.targetReps !== undefined ? (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Target reps: {level.targetReps}
+                                </Typography>
+                              ) : null}
+                            </Stack>
+                            <Stack spacing={1.25} mt={1.5}>
+                              {level.drills.map((drill) => (
+                                <Box
+                                  key={drill.id}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: 2,
+                                    p: 1.5,
+                                    borderRadius: 2,
+                                    border: '1px solid',
+                                    borderColor: 'grey.200',
+                                    bgcolor: 'common.white',
+                                  }}
+                                >
+                                  <Stack spacing={0.25}>
+                                    <Typography variant="body2" fontWeight={600}>
+                                      {drill.title || 'Untitled drill'}
+                                    </Typography>
+                                    {drill.duration !== null &&
+                                    drill.duration !== undefined ? (
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                      >
+                                        Duration: {drill.duration}
+                                      </Typography>
+                                    ) : null}
+                                  </Stack>
+                                  <FitnessCenterIcon fontSize="small" />
+                                </Box>
+                              ))}
+                            </Stack>
+                          </Box>
+                        )
+                      })}
+                    </Stack>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
@@ -326,7 +398,7 @@ export default function HomeDashboardPage() {
                     </Typography>
                   </Stack>
                   <Grid container spacing={1.5}>
-                    {SUMMARY_STATS.map((stat) => (
+                    {summaryStats.map((stat) => (
                       <Grid item xs={6} key={stat.label}>
                         <Paper
                           elevation={0}

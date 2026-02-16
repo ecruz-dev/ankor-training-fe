@@ -85,6 +85,17 @@ const JoinCodesListPage = lazy(() => import('../../features/join-codes/pages/Joi
 const NewJoinCodePage = lazy(() => import('../../features/join-codes/pages/NewJoinCodePage'))
 
 export default function AppRoutes() {
+  function HomeIndexRoute() {
+    const { loading, profile } = useAuth()
+    if (loading) return null
+    const role = (profile?.role ?? '').toLowerCase()
+    const isAthlete = role.includes('athlete') || role.includes('parent')
+    if (isAthlete || !role) {
+      return <HomeDashboardPage />
+    }
+    return <Navigate to="/evaluations" replace />
+  }
+
   return (
     <Suspense fallback={null /* or a spinner */}>
       <Routes>
@@ -103,7 +114,7 @@ export default function AppRoutes() {
           }
         >
           {/* Default landing inside the app */}
-          <Route index element={<HomeDashboardPage />} />
+          <Route index element={<HomeIndexRoute />} />
 
           {/* Settings */}
           <Route path="settings/organization" element={<OrganizationProfilePage />} />

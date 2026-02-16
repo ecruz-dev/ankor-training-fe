@@ -72,6 +72,33 @@ const DEFAULT_BASE_URL =
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
+export type WorkoutSummaryData = {
+  total_evals: number
+  total_reps: number
+}
+
+export type WorkoutSummaryResponse =
+  | { ok: true; data: WorkoutSummaryData }
+  | { ok: false; error: string }
+
+export type WorkoutDrill = {
+  id: string
+  title: string
+  duration?: number | string | null
+  thumbnailUrl?: string | null
+}
+
+export type WorkoutDrillLevel = {
+  level: number
+  title: string
+  targetReps?: number | null
+  drills: WorkoutDrill[]
+}
+
+export type WorkoutDrillsLatestResponse =
+  | { ok: true; count?: number; data?: WorkoutDrillLevel[] }
+  | { ok: false; error: string }
+
 async function fetchJson<T>(
   url: string,
   options: ApiFetchOptions,
@@ -133,6 +160,119 @@ function normalizeEvaluationDetail(raw: any): EvaluationDetailRow {
       }),
     ),
   }
+}
+
+// ---------- Workout summary ----------
+
+export async function getWorkoutSummary(
+  params: { orgId: string; athleteId: string; limit?: number; offset?: number },
+  options: { baseUrl?: string } = {},
+): Promise<WorkoutSummaryData> {
+  const { orgId, athleteId, limit, offset } = params
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL
+
+  if (!orgId?.trim()) {
+    throw new Error('orgId is required.')
+  }
+  if (!athleteId?.trim()) {
+    throw new Error('athleteId is required.')
+  }
+
+  const query = new URLSearchParams()
+  if (Number.isFinite(limit)) query.set('limit', String(limit))
+  if (Number.isFinite(offset)) query.set('offset', String(offset))
+  query.set('athlete_id', athleteId.trim())
+
+  const url = `${baseUrl}/functions/v1/api/evaluations/workout-summary?${query.toString()}`
+
+  const data = await fetchJson<WorkoutSummaryResponse>(url, {
+    method: 'GET',
+    headers: JSON_HEADERS,
+    orgId,
+  })
+
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || 'Failed to load workout summary.')
+  }
+
+  const payload = (data as any)?.data ?? {}
+  const totalEvals = Number(payload?.total_evals)
+  const totalReps = Number(payload?.total_reps)
+
+  return {
+    total_evals: Number.isFinite(totalEvals) ? totalEvals : 0,
+    total_reps: Number.isFinite(totalReps) ? totalReps : 0,
+  }
+}
+
+// ---------- Latest workout drills ----------
+
+function normalizeWorkoutDrill(raw: any): WorkoutDrill {
+  return {
+    id: typeof raw?.id === 'string' ? raw.id : '',
+    title: typeof raw?.title === 'string' ? raw.title.trim() : '',
+    duration: raw?.duration ?? null,
+    thumbnailUrl:
+      typeof raw?.thumbnailUrl === 'string' ? raw.thumbnailUrl : null,
+  }
+}
+
+function normalizeWorkoutLevel(raw: any): WorkoutDrillLevel {
+  const drillsRaw = Array.isArray(raw?.drills) ? raw.drills : []
+  return {
+    level: Number.isFinite(Number(raw?.level)) ? Number(raw.level) : 0,
+    title: typeof raw?.title === 'string' ? raw.title.trim() : '',
+    targetReps: Number.isFinite(Number(raw?.targetReps))
+      ? Number(raw.targetReps)
+      : null,
+    drills: drillsRaw.map(normalizeWorkoutDrill).filter((d) => d.id),
+  }
+}
+
+export async function getLatestWorkoutDrills(
+  params: { orgId: string; athleteId: string; limit?: number; offset?: number },
+  options: { baseUrl?: string } = {},
+): Promise<{ levels: WorkoutDrillLevel[]; count?: number }> {
+  const { orgId, athleteId, limit, offset } = params
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL
+
+  if (!orgId?.trim()) {
+    throw new Error('orgId is required.')
+  }
+  if (!athleteId?.trim()) {
+    throw new Error('athleteId is required.')
+  }
+
+  const query = new URLSearchParams()
+  if (Number.isFinite(limit)) query.set('limit', String(limit))
+  if (Number.isFinite(offset)) query.set('offset', String(offset))
+  query.set('athlete_id', athleteId.trim())
+
+  const url = `${baseUrl}/functions/v1/api/evaluations/workout-drills/latest?${query.toString()}`
+
+  const data = await fetchJson<WorkoutDrillsLatestResponse>(url, {
+    method: 'GET',
+    headers: JSON_HEADERS,
+    orgId,
+  })
+
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || 'Failed to load workout drills.')
+  }
+
+  const levelsRaw = (data as any)?.data ?? []
+  const levels = Array.isArray(levelsRaw)
+    ? levelsRaw.map(normalizeWorkoutLevel)
+    : []
+  const countRaw = (data as any)?.count
+  const count =
+    typeof countRaw === 'number'
+      ? countRaw
+      : Number.isFinite(Number(countRaw))
+        ? Number(countRaw)
+        : undefined
+
+  return { levels, count }
 }
 
 // ---------- Bulk create ----------

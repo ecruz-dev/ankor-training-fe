@@ -1,16 +1,12 @@
-// HomeLayout.tsx — Ankor Training App (with logo + notifications + profile)
+// HomeLayout.tsx - Ankor Training App layout
 // -------------------------------------------------------------
 // Adds the Ankor logo to:
 //  • Drawer header (brand row)
-//  • AppBar (left of the “Home” title)
 //  • Index route placeholder (centered)
-// Also adds a NotificationBell + UserProfileMenu in the AppBar.
 // -------------------------------------------------------------
 
 import * as React from 'react'
 import {
-  AppBar,
-  Toolbar,
   IconButton,
   Typography,
   Drawer,
@@ -22,18 +18,11 @@ import {
   Divider,
   Box,
   CssBaseline,
-  Tooltip,
   useMediaQuery,
-  Badge,
   BottomNavigation,
   BottomNavigationAction,
-  Menu,
-  MenuItem,
-  Chip,
-  Avatar,
 } from '@mui/material'
 import { styled, useTheme } from '@mui/material/styles'
-import MenuIcon from '@mui/icons-material/Menu'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ApartmentIcon from '@mui/icons-material/Apartment'
 import GroupIcon from '@mui/icons-material/Group'
@@ -51,7 +40,6 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import NotificationsIcon from '@mui/icons-material/Notifications'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import InsightsIcon from '@mui/icons-material/Insights' // ✅ NEW: icon for report
@@ -111,12 +99,6 @@ function getRoleBucket(role?: string | null): RoleBucket {
   return 'unknown'
 }
 
-function formatRoleLabel(role?: string | null) {
-  const trimmed = (role ?? '').trim()
-  if (!trimmed) return undefined
-  return trimmed.replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
   open?: boolean
 }>(({ theme, open }) => ({
@@ -162,303 +144,6 @@ function NavItem({
 }
 
 // -------------------------------------------------------------
-// Notifications
-// -------------------------------------------------------------
-
-type NotificationItem = {
-  id: string
-  title: string
-  description?: string
-  topic: string
-  createdAt: string
-  read: boolean
-}
-
-// You can later replace this with data from your backend
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: '1',
-    title: 'New evaluation report ready',
-    description: 'Attack unit evaluation for Team Blue was completed.',
-    topic: 'evaluation',
-    createdAt: '2025-11-29T10:30:00Z',
-    read: false,
-  },
-  {
-    id: '2',
-    title: 'Weekly training summary available',
-    description: 'Review performance trends for all athletes this week.',
-    topic: 'report',
-    createdAt: '2025-11-28T18:00:00Z',
-    read: false,
-  },
-  {
-    id: '3',
-    title: 'Roster update',
-    description: 'Two new athletes were added to Team Red.',
-    topic: 'team',
-    createdAt: '2025-11-27T14:00:00Z',
-    read: true,
-  },
-]
-
-function NotificationBell() {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const [items, setItems] = React.useState<NotificationItem[]>(
-    INITIAL_NOTIFICATIONS,
-  )
-
-  const open = Boolean(anchorEl)
-  const unreadCount = items.filter((n) => !n.read).length
-
-  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleClose = () => {
-    setAnchorEl(null)
-  }
-
-  const handleMarkAllRead = () => {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })))
-  }
-
-  const handleItemClick = (id: string) => {
-    setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    )
-    // Later you can route to detail pages (e.g. evaluations) from here
-    handleClose()
-  }
-
-  return (
-    <>
-      <Tooltip title="Notifications">
-        <IconButton color="inherit" onClick={handleOpen} sx={{ mr: 1 }}>
-          <Badge
-            color="error"
-            badgeContent={unreadCount || undefined}
-            overlap="circular"
-          >
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-      </Tooltip>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{
-          sx: { minWidth: 320, maxWidth: 360 },
-        }}
-      >
-        <Box
-          sx={{
-            px: 2,
-            pt: 1.5,
-            pb: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography variant="subtitle1" fontWeight={700}>
-            Notifications
-          </Typography>
-          {items.length > 0 && unreadCount > 0 && (
-            <Typography
-              variant="caption"
-              color="primary"
-              sx={{ cursor: 'pointer' }}
-              onClick={handleMarkAllRead}
-            >
-              Mark all as read
-            </Typography>
-          )}
-        </Box>
-        <Divider />
-
-        {items.length === 0 && (
-          <MenuItem disabled>
-            <ListItemText
-              primary="No notifications yet"
-              secondary="You’ll see evaluation reports and updates here."
-            />
-          </MenuItem>
-        )}
-
-        {items.map((n) => (
-          <MenuItem
-            key={n.id}
-            onClick={() => handleItemClick(n.id)}
-            sx={{
-              alignItems: 'flex-start',
-              ...(n.read ? {} : { bgcolor: 'action.hover' }),
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 32, mt: 0.5 }}>
-              <AssignmentIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Typography
-                    variant="body2"
-                    fontWeight={n.read ? 400 : 600}
-                    noWrap
-                  >
-                    {n.title}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={n.topic}
-                    sx={{ textTransform: 'capitalize' }}
-                  />
-                </Box>
-              }
-              secondary={
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  noWrap
-                  sx={{ display: 'block', mt: 0.25 }}
-                >
-                  {n.description}
-                </Typography>
-              }
-            />
-          </MenuItem>
-        ))}
-      </Menu>
-    </>
-  )
-}
-
-// -------------------------------------------------------------
-// User profile menu
-// -------------------------------------------------------------
-
-type User = {
-  id: string
-  name: string
-  email: string
-  avatarUrl?: string | null
-  role?: string
-}
-
-function UserProfileMenu({
-  user,
-  onLogout,
-}: {
-  user: User
-  onLogout?: () => void
-}) {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const open = Boolean(anchorEl)
-
-  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleClose = () => {
-    setAnchorEl(null)
-  }
-
-  const handleLogoutClick = () => {
-    onLogout?.()
-    handleClose()
-  }
-
-  const initials = React.useMemo(() => {
-    if (!user.name) return ''
-    const parts = user.name.trim().split(' ')
-    const first = parts[0]?.[0] ?? ''
-    const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : ''
-    return (first + last).toUpperCase()
-  }, [user.name])
-
-  return (
-    <>
-      <Tooltip title={user.name}>
-        <IconButton
-          color="inherit"
-          onClick={handleOpen}
-          size="small"
-          sx={{ ml: 1 }}
-        >
-          <Avatar
-            src={user.avatarUrl || undefined}
-            alt={user.name}
-            sx={{ width: 32, height: 32 }}
-          >
-            {initials}
-          </Avatar>
-        </IconButton>
-      </Tooltip>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{
-          sx: { minWidth: 260 },
-        }}
-      >
-        <Box
-          sx={{
-            px: 2,
-            pt: 1.5,
-            pb: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-          }}
-        >
-          <Avatar
-            src={user.avatarUrl || undefined}
-            alt={user.name}
-            sx={{ width: 40, height: 40 }}
-          >
-            {initials}
-          </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={600} noWrap>
-              {user.name}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              noWrap
-              sx={{ maxWidth: 180 }}
-            >
-              {user.email}
-            </Typography>
-            {user.role && (
-              <Typography variant="caption" color="text.secondary">
-                {user.role}
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        <Divider />
-
-        <MenuItem onClick={handleClose}>
-          <ListItemText primary="View profile" />
-        </MenuItem>
-        <MenuItem onClick={handleLogoutClick}>
-          <ListItemText primary="Log out" />
-        </MenuItem>
-      </Menu>
-    </>
-  )
-}
-
-// -------------------------------------------------------------
 // Main layout
 // -------------------------------------------------------------
 
@@ -468,7 +153,7 @@ export default function HomeLayout() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [settingsOpen, setSettingsOpen] = React.useState(true)
   const location = useLocation()
-  const { profile, user, signOut } = useAuth()
+  const { profile } = useAuth()
 
   const roleBucket = React.useMemo(
     () => getRoleBucket(profile?.role),
@@ -484,27 +169,6 @@ export default function HomeLayout() {
     },
     [roleBucket],
   )
-
-  const profileUser = React.useMemo<User>(() => {
-    const metadataName =
-      typeof user?.user_metadata?.full_name === 'string'
-        ? user.user_metadata.full_name
-        : typeof user?.user_metadata?.name === 'string'
-        ? user.user_metadata.name
-        : ''
-    const rawName =
-      profile?.full_name?.trim() || metadataName.trim() || user?.email || 'User'
-    const name = rawName.trim() || 'User'
-    const email = profile?.email ?? user?.email ?? ''
-    const roleLabel = formatRoleLabel(profile?.role)
-    return {
-      id: profile?.id ?? user?.id ?? 'unknown',
-      name,
-      email,
-      avatarUrl: null,
-      role: roleLabel,
-    }
-  }, [profile, user])
 
   const showSettings =
     canAccess('settings.organization') ||
@@ -741,54 +405,6 @@ export default function HomeLayout() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        color="inherit"
-        elevation={0}
-        sx={{ borderBottom: 1, borderColor: 'divider' }}
-      >
-        <Toolbar>
-          {!isMdUp && (
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={toggleMobile}
-              sx={{ mr: 1 }}
-              aria-label="open drawer"
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flexGrow: 1,
-              minWidth: 0,
-            }}
-          >
-            <Box
-              component="img"
-              src={LOGO_SRC}
-              alt="Ankor logo"
-              sx={{ width: 24, height: 24, objectFit: 'contain' }}
-            />
-            <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-              Home
-            </Typography>
-          </Box>
-
-          {/* 🔔 Notifications */}
-          <NotificationBell />
-
-          {/* 👤 User profile */}
-          <UserProfileMenu
-            user={profileUser}
-            onLogout={() => void signOut()}
-          />
-        </Toolbar>
-      </AppBar>
 
       {/* Side navigation drawer */}
       {isMdUp ? (
@@ -824,7 +440,6 @@ export default function HomeLayout() {
       )}
 
       <Main open={isMdUp} sx={{ pb: showMobileBottomNav ? 10 : undefined }}>
-        <DrawerHeader />
         <Outlet />
       </Main>
 
@@ -874,4 +489,6 @@ export default function HomeLayout() {
 function PeopleIconSafe() {
   return <PeopleAltIcon />
 }
+
+
 
