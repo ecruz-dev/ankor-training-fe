@@ -54,6 +54,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import InsightsIcon from '@mui/icons-material/Insights' // ✅ NEW: icon for report
+import HomeIcon from '@mui/icons-material/Home'
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../app/providers/AuthProvider'
 
@@ -513,7 +514,9 @@ export default function HomeLayout() {
   const evaluationNavLabel =
     roleBucket === 'athlete' ? 'Evaluation reports' : 'Evaluations'
 
-  const bottomNavValue = isActive(evaluationNavPath)
+  const bottomNavValue = isActive('/')
+    ? '/'
+    : isActive(evaluationNavPath)
     ? evaluationNavPath
     : isActive('/practice-plans')
     ? '/practice-plans'
@@ -549,6 +552,14 @@ export default function HomeLayout() {
           </Typography>
         }
       >
+        <NavItem
+          to="/"
+          icon={<HomeIcon />}
+          label="Home"
+          selected={isActive('/')}
+          onClick={!isMdUp ? toggleMobile : undefined}
+        />
+
         {showSettings && (
           <>
             <ListItemButton
@@ -827,6 +838,13 @@ export default function HomeLayout() {
           }}
         >
           <BottomNavigation value={bottomNavValue} showLabels>
+            <BottomNavigationAction
+              label="Home"
+              value="/"
+              icon={<HomeIcon />}
+              component={RouterLink}
+              to="/"
+            />
             <BottomNavigationAction
               label={evaluationNavLabel}
               value={evaluationNavPath}
