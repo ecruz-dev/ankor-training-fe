@@ -75,6 +75,7 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' }
 export type WorkoutSummaryData = {
   total_evals: number
   total_reps: number
+  total_plans_shares: number
 }
 
 export type WorkoutSummaryResponse =
@@ -198,10 +199,14 @@ export async function getWorkoutSummary(
   const payload = (data as any)?.data ?? {}
   const totalEvals = Number(payload?.total_evals)
   const totalReps = Number(payload?.total_reps)
+  const totalPlansShares = Number(payload?.total_plans_shares)
 
   return {
     total_evals: Number.isFinite(totalEvals) ? totalEvals : 0,
     total_reps: Number.isFinite(totalReps) ? totalReps : 0,
+    total_plans_shares: Number.isFinite(totalPlansShares)
+      ? totalPlansShares
+      : 0,
   }
 }
 

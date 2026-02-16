@@ -49,6 +49,7 @@ export default function HomeDashboardPage() {
   const [summary, setSummary] = React.useState({
     totalReps: 0,
     totalEvals: 0,
+    totalSharedPlans: 0,
   })
   const [workoutLoading, setWorkoutLoading] = React.useState(false)
   const [workoutError, setWorkoutError] = React.useState<string | null>(null)
@@ -69,6 +70,7 @@ export default function HomeDashboardPage() {
         setSummary({
           totalReps: data.total_reps ?? 0,
           totalEvals: data.total_evals ?? 0,
+          totalSharedPlans: data.total_plans_shares ?? 0,
         })
       })
       .catch((err: any) => {
@@ -120,6 +122,11 @@ export default function HomeDashboardPage() {
     : summaryLoading
     ? '...'
     : String(summary.totalEvals)
+  const totalSharedPlansValue = summaryError
+    ? '-'
+    : summaryLoading
+    ? '...'
+    : String(summary.totalSharedPlans)
 
   const summaryStats = React.useMemo(
     () => [
@@ -145,11 +152,11 @@ export default function HomeDashboardPage() {
       },
       {
         label: 'Shared Plans',
-        value: '0',
+        value: totalSharedPlansValue,
         icon: <ShareIcon fontSize="small" />,
       },
     ],
-    [totalEvalsValue, totalRepsValue],
+    [totalEvalsValue, totalRepsValue, totalSharedPlansValue],
   )
 
   const todayLabel = React.useMemo(() => {
