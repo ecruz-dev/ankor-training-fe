@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  MenuItem,
   Snackbar,
   Stack,
   TextField,
@@ -22,6 +23,7 @@ import {
   type AthleteFormState,
 } from "../utils/athleteForm";
 import { validateAthleteForm } from "../utils/validation";
+import { listPositions, type Position } from "../services/positionsService";
 
 export default function EditAthletePage() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +37,13 @@ export default function EditAthletePage() {
   const [parentEmail, setParentEmail] = React.useState("");
   const [parentMobilePhone, setParentMobilePhone] = React.useState("");
   const [relationship, setRelationship] = React.useState("");
+  const [positions, setPositions] = React.useState<Position[]>([]);
+  const [positionsLoading, setPositionsLoading] = React.useState(false);
+  const [positionsError, setPositionsError] = React.useState<string | null>(null);
+  const [selectedPositionId, setSelectedPositionId] = React.useState("");
+  const [pendingPositionName, setPendingPositionName] = React.useState<string | null>(
+    null,
+  );
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -58,6 +67,8 @@ export default function EditAthletePage() {
     setParentEmail("");
     setParentMobilePhone("");
     setRelationship("");
+    setSelectedPositionId("");
+    setPendingPositionName(null);
     setErrors({});
     setSubmitError(null);
     setLoadError(null);
@@ -103,14 +114,81 @@ export default function EditAthletePage() {
   }, [athleteId, authLoading, orgId]);
 
   React.useEffect(() => {
+    if (authLoading) return;
+    let active = true;
+
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) {
+      setPositions([]);
+      setPositionsError("Missing org_id. Please sign in again.");
+      setPositionsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setPositionsLoading(true);
+    setPositionsError(null);
+
+    listPositions({ orgId: resolvedOrgId, limit: 50, offset: 0 })
+      .then(({ items }) => {
+        if (!active) return;
+        setPositions(items);
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setPositions([]);
+        setPositionsError(err?.message || "Failed to load positions.");
+      })
+      .finally(() => {
+        if (active) setPositionsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, orgId]);
+
+  React.useEffect(() => {
     if (!athlete || initializedRef.current) return;
     setForm(toAthleteFormState(athlete));
     setParentFullName(athlete.parent_full_name ?? "");
     setParentEmail(athlete.parent_email ?? "");
     setParentMobilePhone(athlete.parent_mobile_phone ?? "");
     setRelationship(athlete.relationship ?? "");
+    const initialPositionId = athlete.position_id ?? "";
+    setSelectedPositionId(initialPositionId);
+    if (!initialPositionId) {
+      const nameCandidate = athlete.position ?? athlete.positions?.[0] ?? "";
+      setPendingPositionName(nameCandidate || null);
+    } else {
+      setPendingPositionName(null);
+    }
     initializedRef.current = true;
   }, [athlete]);
+
+  React.useEffect(() => {
+    if (!pendingPositionName || selectedPositionId || positions.length === 0) return;
+    const match = positions.find(
+      (pos) => pos.name.toLowerCase() === pendingPositionName.toLowerCase(),
+    );
+    if (match) {
+      setSelectedPositionId(match.id);
+    }
+    setPendingPositionName(null);
+  }, [pendingPositionName, positions, selectedPositionId]);
+
+  const positionOptions = React.useMemo(() => {
+    return [...positions].sort((a, b) => a.name.localeCompare(b.name));
+  }, [positions]);
+
+  const positionHelperText = positionsError
+    ? positionsError
+    : positionsLoading
+      ? "Loading positions..."
+      : positionOptions.length === 0
+        ? "No positions available."
+        : "Optional";
 
   const handleChange = (field: keyof AthleteFormState) => (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -150,6 +228,7 @@ export default function EditAthletePage() {
         parent_full_name: parentFullName.trim() || null,
         parent_mobile_phone: parentMobilePhone.trim() || null,
         relationship: relationship.trim() || null,
+        position_id: selectedPositionId.trim() || null,
       };
 
       const updated = await updateAthlete(athleteId, payload, { orgId });
@@ -229,6 +308,23 @@ export default function EditAthletePage() {
           showPassword={false}
           showUsername={false}
         >
+          <TextField
+            select
+            label="Position"
+            value={selectedPositionId}
+            onChange={(event) => setSelectedPositionId(event.target.value)}
+            error={Boolean(positionsError) || Boolean(errors.position_id)}
+            helperText={errors.position_id || positionHelperText}
+            fullWidth
+            disabled={positionsLoading}
+          >
+            <MenuItem value="">No position</MenuItem>
+            {positionOptions.map((pos) => (
+              <MenuItem key={pos.id} value={pos.id}>
+                {pos.name}
+              </MenuItem>
+            ))}
+          </TextField>
           <Box sx={{ gridColumn: "1 / -1" }}>
             <Typography variant="subtitle2" color="text.secondary">
               Parent/Guardian

@@ -19,7 +19,7 @@ type CommonFields = {
 
 type AthleteOnly = {
   graduationYear: number;
-  positions: string[]; // e.g. ["Attack"]
+  position_id: string;
 };
 
 export type AthleteSignUp = CommonFields & { role: 'athlete' } & AthleteOnly;
@@ -66,7 +66,7 @@ function toBackendPayload(input: SignUpInput) {
     return {
       ...base,
       graduationYear: Number(input.graduationYear),
-      positions: input.positions, // send exactly what the UI captured
+      position_id: input.position_id.trim(),
     };
   }
 
@@ -89,8 +89,8 @@ export async function signUp(
     if (!Number.isFinite(input.graduationYear)) {
       throw new Error('Graduation year is required for athletes.');
     }
-    if (!input.positions || input.positions.length === 0) {
-      throw new Error('At least one position is required for athletes.');
+    if (!input.position_id?.trim()) {
+      throw new Error('Position is required for athletes.');
     }
   }
 
@@ -132,7 +132,7 @@ export function makeAthleteInput(params: {
   cellNumber?: string | null;
   termsAccepted: boolean;
   graduationYear: number;
-  positions: string[];
+  position_id: string;
 }): AthleteSignUp {
   return { role: 'athlete', ...params };
 }

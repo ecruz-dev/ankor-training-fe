@@ -18,6 +18,7 @@ import {  SitemarkIcon } from '../components/CustomIcons';
 import MenuItem from '@mui/material/MenuItem';
 import { signUp, makeAthleteInput, makeCoachInput } from '../services/signupService';
 import { useNavigate } from 'react-router-dom'; 
+import { listPositions, type Position } from '../../athletes/services/positionsService';
 
 
 
@@ -96,7 +97,7 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 //     "lastName": "Cruz",
 //     "cellNumber": "555-111-2222",
 //     "graduationYear": 2027,
-//     "positions": ["Attack"],
+//     "position_id": "<uuid>",
 //     "termsAccepted": true,
 //     "username": "ecruz"
 //   }
@@ -119,6 +120,81 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
   const [lastNameErrorMessage, setLastNameErrorMessage] = React.useState('');
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
+  const [positions, setPositions] = React.useState<Position[]>([]);
+  const [positionsLoading, setPositionsLoading] = React.useState(false);
+  const [positionsError, setPositionsError] = React.useState<string | null>(null);
+  const [selectedPositionId, setSelectedPositionId] = React.useState('');
+  const [positionError, setPositionError] = React.useState(false);
+  const [positionErrorMessage, setPositionErrorMessage] = React.useState('');
+
+  const debugOrgId =
+    (import.meta.env.VITE_DEBUG_ORG_ID as string | undefined)?.trim() || '';
+
+  const positionsAuthHeaders = React.useMemo(() => {
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+    if (!anon) return {};
+    return { apikey: anon, Authorization: `Bearer ${anon}` };
+  }, []);
+
+  React.useEffect(() => {
+    if (role !== 'athlete') {
+      setPositions([]);
+      setPositionsError(null);
+      setPositionsLoading(false);
+      setSelectedPositionId('');
+      setPositionError(false);
+      setPositionErrorMessage('');
+      return;
+    }
+
+    let active = true;
+    const resolvedOrgId = debugOrgId;
+
+    if (!resolvedOrgId) {
+      setPositions([]);
+      setPositionsError('Missing org_id for positions.');
+      setPositionsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setPositionsLoading(true);
+    setPositionsError(null);
+
+    listPositions({ orgId: resolvedOrgId, limit: 50, offset: 0 }, undefined, {
+      requireAuth: false,
+      headers: positionsAuthHeaders,
+    })
+      .then(({ items }) => {
+        if (!active) return;
+        setPositions(items);
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setPositions([]);
+        setPositionsError(err?.message || 'Failed to load positions.');
+      })
+      .finally(() => {
+        if (active) setPositionsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [role, debugOrgId, positionsAuthHeaders]);
+
+  const positionOptions = React.useMemo(() => {
+    return [...positions].sort((a, b) => a.name.localeCompare(b.name));
+  }, [positions]);
+
+  const positionHelperText = positionsError
+    ? positionsError
+    : positionsLoading
+      ? 'Loading positions...'
+      : positionOptions.length === 0
+        ? 'No positions available.'
+        : '';
 
   const validateInputs = () => {
     const email = document.getElementById('email') as HTMLInputElement | null;
@@ -168,6 +244,20 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
       setNameErrorMessage('');
     }
 
+    if (role === 'athlete') {
+      if (!selectedPositionId.trim()) {
+        setPositionError(true);
+        setPositionErrorMessage('Position is required.');
+        isValid = false;
+      } else {
+        setPositionError(false);
+        setPositionErrorMessage('');
+      }
+    } else {
+      setPositionError(false);
+      setPositionErrorMessage('');
+    }
+
     return isValid;
   };
 
@@ -207,8 +297,9 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
         const graduationYearStr = String(form.get('graduationYear') || '').trim();
         const graduationYear = graduationYearStr ? Number(graduationYearStr) : NaN;
 
-        const positionsValue = String(form.get('positions') || '').trim();
-        const positions = positionsValue ? [positionsValue] : [];
+        const positionIdRaw =
+          selectedPositionId || String(form.get('position_id') || '');
+        const positionId = positionIdRaw.trim();
 
         try {
           if (role === 'athlete') {
@@ -222,7 +313,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
               cellNumber,
               termsAccepted,
               graduationYear,
-              positions,
+              position_id: positionId,
             });
             const res = await signUp(input);
             navigate('/');
@@ -391,19 +482,31 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel htmlFor="positions">Position</FormLabel>
+                  <FormLabel htmlFor="position_id">Position</FormLabel>
                   <TextField
-                    id="positions"
-                    name="positions"
+                    id="position_id"
+                    name="position_id"
                     select
                     fullWidth
-                    defaultValue=""
-                    placeholder="Select position"
+                    required
+                    value={selectedPositionId}
+                    onChange={(event) => {
+                      setSelectedPositionId(event.target.value);
+                      if (positionError) {
+                        setPositionError(false);
+                        setPositionErrorMessage('');
+                      }
+                    }}
+                    error={positionError || Boolean(positionsError)}
+                    helperText={positionErrorMessage || positionHelperText}
+                    disabled={positionsLoading}
                   >
-                    <MenuItem value="Attack">Attack</MenuItem>
-                    <MenuItem value="MidField">MidField</MenuItem>
-                    <MenuItem value="Defense">Defense</MenuItem>
-                    <MenuItem value="Goalie">Goalie</MenuItem>
+                    <MenuItem value="">Select position</MenuItem>
+                    {positionOptions.map((pos) => (
+                      <MenuItem key={pos.id} value={pos.id}>
+                        {pos.name}
+                      </MenuItem>
+                    ))}
                   </TextField>
                 </FormControl>
               </>

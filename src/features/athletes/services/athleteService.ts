@@ -26,6 +26,9 @@ export type AthleteListItem = {
   age?: number | null;
   username?: string | null;
   graduation_year: number | null;
+  position_id?: string | null;
+  position?: string | null;
+  positions?: string[] | null;
   teams: AthleteTeam[];
 };
 
@@ -53,6 +56,7 @@ export type CreateAthleteInput = {
   username: string;
   graduation_year?: number | string | null;
   team_id?: string | null;
+  position_id?: string | null;
   age?: number | string | null;
   gender?: string | null;
 };
@@ -76,6 +80,7 @@ export type UpdateAthleteInput = {
   username?: string | null;
   graduation_year?: number | string | null;
   team_id?: string | null;
+  position_id?: string | null;
   age?: number | string | null;
   gender?: string | null;
 };
@@ -138,6 +143,13 @@ function normalizeAthlete(raw: any): AthleteListItem {
     const trimmed = value.trim();
     return trimmed ? trimmed : null;
   };
+  const normalizeOptionalStringArray = (value: unknown) => {
+    if (!Array.isArray(value)) return null;
+    const normalized = value
+      .map((entry) => normalizeOptionalString(entry))
+      .filter((entry): entry is string => Boolean(entry));
+    return normalized.length > 0 ? normalized : null;
+  };
 
   const firstName =
     typeof raw?.first_name === "string" && raw.first_name.trim()
@@ -175,6 +187,18 @@ function normalizeAthlete(raw: any): AthleteListItem {
   const relationship =
     normalizeOptionalString(raw?.relationship) ??
     normalizeOptionalString(parent?.relationship);
+  const positionId =
+    normalizeOptionalString(raw?.position_id) ??
+    normalizeOptionalString(raw?.primary_position_id) ??
+    normalizeOptionalString(raw?.positionId);
+  const positionName =
+    normalizeOptionalString(raw?.position) ??
+    normalizeOptionalString(raw?.position_name) ??
+    normalizeOptionalString(raw?.primary_position);
+  const positions =
+    normalizeOptionalStringArray(raw?.positions) ??
+    normalizeOptionalStringArray(raw?.position_names) ??
+    normalizeOptionalStringArray(raw?.primary_positions);
 
   return {
     id: typeof raw?.id === "string" ? raw.id : "",
@@ -203,6 +227,9 @@ function normalizeAthlete(raw: any): AthleteListItem {
         ? raw.username.trim()
         : null,
     graduation_year: normalizeGraduationYear(raw?.graduation_year),
+    position_id: positionId,
+    position: positionName,
+    positions,
     teams: normalizeTeams(raw?.teams),
   };
 }
@@ -273,6 +300,7 @@ function normalizeCreatePayload(input: CreateAthleteInput) {
   const graduationYear = normalizeGraduationYear(input.graduation_year);
   const age = normalizeAge(input.age);
   const teamId = input.team_id?.trim() || null;
+  const positionId = input.position_id?.trim() || null;
   const gender = input.gender?.trim() || null;
   const fullNameInput = input.full_name?.trim() || "";
   const derivedFullName = [input.first_name, input.last_name]
@@ -325,8 +353,11 @@ function normalizeCreatePayload(input: CreateAthleteInput) {
     relationship !== undefined && relationship !== null
       ? { ...withParentMobilePhone, relationship }
       : withParentMobilePhone;
+  const withPosition = positionId
+    ? { ...withRelationship, position_id: positionId }
+    : withRelationship;
 
-  return withRelationship;
+  return withPosition;
 }
 
 function normalizeUpdatePayload(input: UpdateAthleteInput) {
@@ -394,6 +425,9 @@ function normalizeUpdatePayload(input: UpdateAthleteInput) {
 
   const teamId = normalizeOptionalString(input.team_id);
   if (teamId !== undefined) payload.team_id = teamId;
+
+  const positionId = normalizeOptionalString(input.position_id);
+  if (positionId !== undefined) payload.position_id = positionId;
 
   if (input.age !== undefined) {
     payload.age = normalizeAge(input.age);

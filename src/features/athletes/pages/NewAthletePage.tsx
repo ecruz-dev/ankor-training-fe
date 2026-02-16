@@ -10,6 +10,7 @@ import {
 } from "../utils/athleteForm";
 import { validateAthleteForm } from "../utils/validation";
 import { getAllTeams, type Team } from "../../teams/services/teamsService";
+import { listPositions, type Position } from "../services/positionsService";
 
 export default function NewAthletePage() {
   const navigate = useNavigate();
@@ -22,6 +23,10 @@ export default function NewAthletePage() {
   const [teamsLoading, setTeamsLoading] = React.useState(false);
   const [teamsError, setTeamsError] = React.useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = React.useState("");
+  const [positions, setPositions] = React.useState<Position[]>([]);
+  const [positionsLoading, setPositionsLoading] = React.useState(false);
+  const [positionsError, setPositionsError] = React.useState<string | null>(null);
+  const [selectedPositionId, setSelectedPositionId] = React.useState("");
   const [age, setAge] = React.useState("");
   const [gender, setGender] = React.useState("");
   const [parentFullName, setParentFullName] = React.useState("");
@@ -34,6 +39,7 @@ export default function NewAthletePage() {
 
   React.useEffect(() => {
     setSelectedTeamId("");
+    setSelectedPositionId("");
   }, [orgId]);
 
   React.useEffect(() => {
@@ -72,9 +78,49 @@ export default function NewAthletePage() {
     };
   }, [authLoading, orgId]);
 
+  React.useEffect(() => {
+    if (authLoading) return;
+    let active = true;
+
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) {
+      setPositions([]);
+      setPositionsError("Missing org_id. Please sign in again.");
+      setPositionsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setPositionsLoading(true);
+    setPositionsError(null);
+
+    listPositions({ orgId: resolvedOrgId, limit: 50, offset: 0 })
+      .then(({ items }) => {
+        if (!active) return;
+        setPositions(items);
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setPositions([]);
+        setPositionsError(err?.message || "Failed to load positions.");
+      })
+      .finally(() => {
+        if (active) setPositionsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, orgId]);
+
   const teamOptions = React.useMemo(() => {
     return [...teams].sort((a, b) => a.name.localeCompare(b.name));
   }, [teams]);
+
+  const positionOptions = React.useMemo(() => {
+    return [...positions].sort((a, b) => a.name.localeCompare(b.name));
+  }, [positions]);
 
   const teamHelperText = teamsError
     ? teamsError
@@ -82,6 +128,14 @@ export default function NewAthletePage() {
       ? "Loading teams..."
       : teamOptions.length === 0
         ? "No teams available."
+        : "Optional";
+
+  const positionHelperText = positionsError
+    ? positionsError
+    : positionsLoading
+      ? "Loading positions..."
+      : positionOptions.length === 0
+        ? "No positions available."
         : "Optional";
 
   const handleChange = (field: keyof AthleteFormState) => (
@@ -139,6 +193,7 @@ export default function NewAthletePage() {
         username: form.username.trim(),
         graduation_year: toOptionalNumber(form.graduationYear),
         team_id: selectedTeamId.trim() || null,
+        position_id: selectedPositionId.trim() || null,
         age: ageValue,
         gender: gender.trim() || null,
         parent_email: parentEmail.trim() || null,
@@ -236,6 +291,23 @@ export default function NewAthletePage() {
             <MenuItem value="male">Male</MenuItem>
             <MenuItem value="nonbinary">Non-binary</MenuItem>
             <MenuItem value="other">Other</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Position"
+            value={selectedPositionId}
+            onChange={(event) => setSelectedPositionId(event.target.value)}
+            error={Boolean(positionsError) || Boolean(errors.position_id)}
+            helperText={errors.position_id || positionHelperText}
+            fullWidth
+            disabled={positionsLoading}
+          >
+            <MenuItem value="">No position</MenuItem>
+            {positionOptions.map((pos) => (
+              <MenuItem key={pos.id} value={pos.id}>
+                {pos.name}
+              </MenuItem>
+            ))}
           </TextField>
           <TextField
             select
