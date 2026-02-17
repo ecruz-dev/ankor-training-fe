@@ -45,6 +45,9 @@ const HomeLayout = lazy(() => import('../../features/home/pages/HomePage'))
 const HomeDashboardPage = lazy(
   () => import('../../features/home/pages/HomeDashboardPage'),
 )
+const CoachHomePage = lazy(
+  () => import('../../features/home/pages/CoachHomePage'),
+)
 const OrganizationProfilePage = lazy(() => import('../../features/settings/pages/OrganizationProfile'))
 const ManageUsersPage = lazy(() => import('../../features/settings/pages/ManageUsersPage'))
 const AdminPanel = lazy(() => import('../../features/settings/pages/AdminPanel'))
@@ -90,8 +93,12 @@ export default function AppRoutes() {
     if (loading) return null
     const role = (profile?.role ?? '').toLowerCase()
     const isAthlete = role.includes('athlete') || role.includes('parent')
+    const isCoach = role.includes('coach')
     if (isAthlete || !role) {
       return <HomeDashboardPage />
+    }
+    if (isCoach) {
+      return <CoachHomePage />
     }
     return <Navigate to="/evaluations" replace />
   }

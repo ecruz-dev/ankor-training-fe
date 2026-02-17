@@ -20,6 +20,17 @@ export type CoachesListResponse =
   | { ok: true; count?: number; items?: CoachListItem[]; data?: CoachListItem[] }
   | { ok: false; error: string };
 
+export type CoachSummaryData = {
+  total_teams: number;
+  total_athletes: number;
+  total_evaluations: number;
+  total_plans_share: number;
+};
+
+export type CoachSummaryResponse =
+  | { ok: true; data: CoachSummaryData }
+  | { ok: false; error: string };
+
 export type ListCoachesParams = {
   orgId: string;
   name?: string;
@@ -84,6 +95,25 @@ function normalizeCoach(raw: any): CoachListItem {
   };
 }
 
+function normalizeCoachSummary(raw: any): CoachSummaryData {
+  const toNumber = (value: unknown) => {
+    const parsed =
+      typeof value === "number"
+        ? value
+        : typeof value === "string"
+          ? Number(value)
+          : NaN;
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  return {
+    total_teams: toNumber(raw?.total_teams),
+    total_athletes: toNumber(raw?.total_athletes),
+    total_evaluations: toNumber(raw?.total_evaluations),
+    total_plans_share: toNumber(raw?.total_plans_share),
+  };
+}
+
 export function coachLabel(
   coach: Pick<CoachListItem, "full_name" | "first_name" | "last_name">,
 ) {
@@ -92,6 +122,50 @@ export function coachLabel(
     [coach.first_name, coach.last_name].filter(Boolean).join(" ") ||
     "Unnamed coach"
   );
+}
+
+/**
+ * GET /functions/v1/api/coaches/:coachId/summary
+ */
+export async function getCoachSummary(
+  params: {
+    coachId: string;
+    orgId?: string | null;
+    limit?: number;
+    offset?: number;
+  },
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<CoachSummaryData> {
+  if (!params.coachId?.trim()) {
+    throw new Error("coachId is required.");
+  }
+
+  const search = new URLSearchParams();
+  if (Number.isFinite(params.limit)) search.set("limit", String(params.limit));
+  if (Number.isFinite(params.offset)) search.set("offset", String(params.offset));
+
+  const query = search.toString();
+  const url = `${baseUrl}/functions/v1/api/coaches/${params.coachId.trim()}/summary${query ? `?${query}` : ""}`;
+
+  const res = await apiFetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    orgId: params.orgId ?? null,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | CoachSummaryResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || "Failed to load coach summary.");
+  }
+
+  return normalizeCoachSummary((data as any)?.data ?? {});
 }
 
 /**
