@@ -57,6 +57,7 @@ import InsightsIcon from '@mui/icons-material/Insights' // ✅ NEW: icon for rep
 import HomeIcon from '@mui/icons-material/Home'
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../app/providers/AuthProvider'
+import { supabase } from '../../../lib/supabaseClient'
 
 const DRAWER_WIDTH = 280
 const LOGO_SRC = '/logo-ankor.png' // put your logo file under /public as logo-ankor.png
@@ -174,41 +175,156 @@ type NotificationItem = {
   read: boolean
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: '1',
-    title: 'New evaluation report ready',
-    description: 'Attack unit evaluation for Team Blue was completed.',
-    topic: 'evaluation',
-    createdAt: '2025-11-29T10:30:00Z',
-    read: false,
-  },
-  {
-    id: '2',
-    title: 'Weekly training summary available',
-    description: 'Review performance trends for all athletes this week.',
-    topic: 'report',
-    createdAt: '2025-11-28T18:00:00Z',
-    read: false,
-  },
-  {
-    id: '3',
-    title: 'Roster update',
-    description: 'Two new athletes were added to Team Red.',
-    topic: 'team',
-    createdAt: '2025-11-27T14:00:00Z',
-    read: true,
-  },
-]
+type NotificationRow = {
+  id: string | number
+  user_id?: string | null
+  type?: string | null
+  payload?: Record<string, unknown> | string | null
+  created_at?: string | null
+  read?: boolean | null
+  read_at?: string | null
+}
+
+const parsePayload = (value: NotificationRow['payload']) => {
+  if (!value) return {}
+  if (typeof value === 'object') return value as Record<string, unknown>
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (parsed && typeof parsed === 'object') return parsed as Record<string, unknown>
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+
+const formatTopic = (value?: string | null) => {
+  const normalized = (value ?? '').replace(/[_-]+/g, ' ').trim()
+  return normalized || 'general'
+}
+
+const toTitleCase = (value: string) =>
+  value.replace(/\b\w/g, (char) => char.toUpperCase())
+
+const toNotificationItem = (row: NotificationRow): NotificationItem => {
+  const payload = parsePayload(row.payload)
+  const rawTitle =
+    payload.title ?? payload.subject ?? payload.name ?? payload.message
+  const title =
+    typeof rawTitle === 'string' && rawTitle.trim()
+      ? rawTitle.trim()
+      : row.type
+      ? toTitleCase(formatTopic(row.type))
+      : 'Notification'
+  const rawDescription =
+    payload.description ?? payload.body ?? payload.details ?? payload.summary
+  const description =
+    typeof rawDescription === 'string' && rawDescription.trim()
+      ? rawDescription.trim()
+      : undefined
+  const topic =
+    typeof payload.topic === 'string' && payload.topic.trim()
+      ? payload.topic.trim()
+      : row.type
+      ? formatTopic(row.type)
+      : 'general'
+  const createdAt =
+    row.created_at ||
+    (typeof payload.created_at === 'string' ? payload.created_at : null) ||
+    new Date().toISOString()
+  const read =
+    Boolean(row.read) ||
+    Boolean(row.read_at) ||
+    Boolean(payload.read) ||
+    false
+
+  return {
+    id: String(row.id),
+    title,
+    description,
+    topic,
+    createdAt,
+    read,
+  }
+}
 
 function NotificationBell() {
+  const { user } = useAuth()
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const [items, setItems] = React.useState<NotificationItem[]>(
-    INITIAL_NOTIFICATIONS,
-  )
+  const [items, setItems] = React.useState<NotificationItem[]>([])
+  const [loading, setLoading] = React.useState(false)
 
   const open = Boolean(anchorEl)
   const unreadCount = items.filter((n) => !n.read).length
+  const userId = user?.id ?? null
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    if (!userId) {
+      setItems([])
+      setLoading(false)
+      return
+    }
+
+    const loadNotifications = async () => {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (cancelled) return
+      if (error) {
+        console.error('Failed to load notifications', error)
+        setItems([])
+      } else {
+        const mapped = (data ?? []).map((row) =>
+          toNotificationItem(row as NotificationRow),
+        )
+        setItems(mapped)
+      }
+      setLoading(false)
+    }
+
+    loadNotifications()
+
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  React.useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const row = payload.new as NotificationRow
+          const nextItem = toNotificationItem(row)
+          setItems((prev) => {
+            if (prev.some((item) => item.id === nextItem.id)) return prev
+            return [nextItem, ...prev]
+          })
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -277,7 +393,16 @@ function NotificationBell() {
         </Box>
         <Divider />
 
-        {items.length === 0 && (
+        {loading && items.length === 0 && (
+          <MenuItem disabled>
+            <ListItemText
+              primary="Loading notifications..."
+              secondary="Fetching the latest updates."
+            />
+          </MenuItem>
+        )}
+
+        {!loading && items.length === 0 && (
           <MenuItem disabled>
             <ListItemText
               primary="No notifications yet"
