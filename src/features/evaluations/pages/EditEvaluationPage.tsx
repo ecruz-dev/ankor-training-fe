@@ -472,6 +472,11 @@ const navigate = useNavigate();
       ? evaluations[activeAthleteId]?.[currentCategory.id] ?? null
       : null;
 
+  const activeAthlete = React.useMemo(
+    () => selectedAthletes.find((athlete) => athlete.id === activeAthleteId) ?? null,
+    [selectedAthletes, activeAthleteId],
+  );
+
   React.useEffect(() => {
     if (!isMobile || !currentCategory) return;
     if (!expandedSubskillsByCategory[currentCategory.id]) return;
@@ -1117,6 +1122,13 @@ const navigate = useNavigate();
                           sx={{ display: "block", mb: 0.5 }}
                         >
                           Category rating (baseline)
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.primary"
+                          sx={{ mb: 1, fontWeight: 600 }}
+                        >
+                          {activeAthlete?.full_name ?? "None"}
                         </Typography>
 
                         <ToggleButtonGroup

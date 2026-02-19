@@ -82,6 +82,11 @@ export default function NewEvaluationMobilePanel({
   loadingPast,
   pastError,
 }: NewEvaluationMobilePanelProps) {
+  const activeAthlete = React.useMemo(
+    () => selectedAthletes.find((athlete) => athlete.id === activeAthleteId) ?? null,
+    [selectedAthletes, activeAthleteId],
+  )
+
   return (
     <Stack spacing={2}>
       <Paper sx={{ p: 2 }}>
@@ -107,10 +112,7 @@ export default function NewEvaluationMobilePanel({
                       selected={athlete.id === activeAthleteId}
                       onClick={() => onAthleteChange(athlete.id)}
                     >
-                      <ListItemText
-                        primary={athlete.full_name}
-                        secondary={athlete.position ? athlete.position : undefined}
-                      />
+                      <ListItemText primary={athlete.full_name} />
                     </ListItemButton>
                   ))}
                 </List>
@@ -141,6 +143,13 @@ export default function NewEvaluationMobilePanel({
                       sx={{ display: 'block', mb: 0.5 }}
                     >
                       Category rating (baseline)
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.primary"
+                      sx={{ mb: 1, fontWeight: 600 }}
+                    >
+                      {activeAthlete?.full_name ?? 'None'}
                     </Typography>
 
                     <ToggleButtonGroup
