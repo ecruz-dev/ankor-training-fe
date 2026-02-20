@@ -1276,11 +1276,12 @@ const navigate = useNavigate();
                           <Button
                             variant="contained"
                             endIcon={<ChevronRightIcon />}
-                            onClick={() =>
+                            onClick={() => {
                               setActiveCategoryIndex((prev) =>
                                 Math.min(prev + 1, activeCategories.length - 1),
-                              )
-                            }
+                              );
+                              setActiveAthleteId(selectedAthletes[0]?.id ?? null);
+                            }}
                             disabled={!activeAthleteId}
                           >
                             Next
