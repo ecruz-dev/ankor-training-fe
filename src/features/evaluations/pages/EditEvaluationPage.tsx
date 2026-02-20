@@ -363,24 +363,8 @@ const navigate = useNavigate();
   const hasNextCategory = activeCategoryIndex < activeCategories.length - 1;
   const hasPreviousCategory = activeCategoryIndex > 0;
 
-  const skipMobileCategoryResetRef = React.useRef(false);
-
-  const moveToNextAthlete = React.useCallback(() => {
-    if (!activeAthleteId) return;
-    const idx = selectedAthletes.findIndex((a) => a.id === activeAthleteId);
-    if (idx < 0) return;
-    const next = selectedAthletes[idx + 1];
-    if (!next) return;
-    skipMobileCategoryResetRef.current = true;
-    setActiveAthleteId(next.id);
-  }, [activeAthleteId, selectedAthletes]);
-
   React.useEffect(() => {
     if (!isMobile) return;
-    if (skipMobileCategoryResetRef.current) {
-      skipMobileCategoryResetRef.current = false;
-      return;
-    }
     setActiveCategoryIndex(0);
   }, [activeAthleteId, isMobile]);
 
@@ -1144,8 +1128,6 @@ const navigate = useNavigate();
                               currentCategory.id,
                               newValue,
                             );
-
-                            if (newValue !== null) moveToNextAthlete();
                           }}
                           aria-label="Category rating baseline"
                           disabled={!activeAthleteId}

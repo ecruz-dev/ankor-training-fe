@@ -463,14 +463,11 @@ export default function NewEvaluationDetailPage() {
         }))
         return
       }
-
-      if (newValue !== null) moveToNextAthlete()
     },
     [
       activeAthleteId,
       currentCategory,
       ensureMobileSubskillsLoaded,
-      moveToNextAthlete,
       setMobileCategoryScoreAndRollout,
       subskillsByCategory,
     ],
