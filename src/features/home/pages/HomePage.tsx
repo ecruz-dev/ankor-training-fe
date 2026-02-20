@@ -173,12 +173,14 @@ type NotificationItem = {
   topic: string
   createdAt: string
   read: boolean
+  link?: string
 }
 
 type NotificationRow = {
   id: string | number
   user_id?: string | null
   type?: string | null
+  evaluation_id?: string | number | null
   payload?: Record<string, unknown> | string | null
   created_at?: string | null
   read?: boolean | null
@@ -207,6 +209,21 @@ const formatTopic = (value?: string | null) => {
 const toTitleCase = (value: string) =>
   value.replace(/\b\w/g, (char) => char.toUpperCase())
 
+const buildReportLink = (evaluationId?: string | number | null) => {
+  if (evaluationId === undefined || evaluationId === null || evaluationId === '') {
+    return '/reports/evaluation-reports'
+  }
+  return `/reports/evaluation-reports/${evaluationId}`
+}
+
+const toEvaluationId = (
+  value: unknown,
+): string | number | null | undefined => {
+  if (typeof value === 'string') return value.trim() || null
+  if (typeof value === 'number') return Number.isNaN(value) ? null : value
+  return null
+}
+
 const toNotificationItem = (row: NotificationRow): NotificationItem => {
   const payload = parsePayload(row.payload)
   const rawTitle =
@@ -229,6 +246,13 @@ const toNotificationItem = (row: NotificationRow): NotificationItem => {
       : row.type
       ? formatTopic(row.type)
       : 'general'
+  const linkFromPayload =
+    typeof payload.link === 'string' && payload.link.trim()
+      ? payload.link.trim()
+      : undefined
+  const evaluationId =
+    row.evaluation_id ?? toEvaluationId(payload.evaluation_id)
+  const link = linkFromPayload ?? buildReportLink(evaluationId)
   const createdAt =
     row.created_at ||
     (typeof payload.created_at === 'string' ? payload.created_at : null) ||
@@ -246,6 +270,7 @@ const toNotificationItem = (row: NotificationRow): NotificationItem => {
     topic,
     createdAt,
     read,
+    link,
   }
 }
 
@@ -415,6 +440,8 @@ function NotificationBell() {
           <MenuItem
             key={n.id}
             onClick={() => handleItemClick(n.id)}
+            component={RouterLink}
+            to={n.link ?? '/reports/evaluation-reports'}
             sx={{
               alignItems: 'flex-start',
               ...(n.read ? {} : { bgcolor: 'action.hover' }),
