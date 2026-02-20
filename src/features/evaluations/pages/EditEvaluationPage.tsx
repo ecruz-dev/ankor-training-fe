@@ -363,11 +363,6 @@ const navigate = useNavigate();
   const hasNextCategory = activeCategoryIndex < activeCategories.length - 1;
   const hasPreviousCategory = activeCategoryIndex > 0;
 
-  React.useEffect(() => {
-    if (!isMobile) return;
-    setActiveCategoryIndex(0);
-  }, [activeAthleteId, isMobile]);
-
   const ensureMobileSubskillsLoaded = React.useCallback(
     async (categoryId: string) => {
       if (!isMobile) return;
