@@ -29,6 +29,8 @@ import {
   listLatestEvaluationsByEvaluation,
   type LatestEvaluationRow,
 } from '../../evaluations/api/evaluationsApi'
+import DrillsPlayDialog from '../../drills/components/list/DrillsPlayDialog'
+import { getDrillMediaPlay } from '../../drills/services/drillsService'
 import { useAuth } from '../../../app/providers/AuthProvider'
 import { type EvaluationReport, type ReportVideo } from '../data/mockEvaluationReports'
 import { formatEvaluationReportDate } from '../utils/formatEvaluationReportDate'
@@ -127,6 +129,20 @@ export default function EvaluationReportDetailPage() {
   const [report, setReport] = React.useState<EvaluationReport | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [drillPlayState, setDrillPlayState] = React.useState<{
+    open: boolean
+    drill: ReportVideo | null
+    url: string | null
+    loading: boolean
+    error: string | null
+  }>({
+    open: false,
+    drill: null,
+    url: null,
+    loading: false,
+    error: null,
+  })
+  const drillPlayRequestIdRef = React.useRef(0)
 
   const loadReport = React.useCallback(async () => {
     if (!id) {
@@ -433,6 +449,75 @@ export default function EvaluationReportDetailPage() {
     }
   }
 
+  const openDrillPlay = React.useCallback(
+    (drill: ReportVideo) => {
+      const resolvedOrgId = orgId?.trim()
+      if (!resolvedOrgId) {
+        setDrillPlayState({
+          open: true,
+          drill,
+          url: null,
+          loading: false,
+          error: 'Missing org_id for this account.',
+        })
+        return
+      }
+      if (!drill.id) {
+        setDrillPlayState({
+          open: true,
+          drill,
+          url: null,
+          loading: false,
+          error: 'Missing drill id.',
+        })
+        return
+      }
+
+      setDrillPlayState({
+        open: true,
+        drill,
+        url: null,
+        loading: true,
+        error: null,
+      })
+
+      const requestId = ++drillPlayRequestIdRef.current
+      void (async () => {
+        try {
+          const response = await getDrillMediaPlay(drill.id, { orgId: resolvedOrgId })
+          if (drillPlayRequestIdRef.current !== requestId) return
+          setDrillPlayState((prev) => ({
+            ...prev,
+            url: response.play_url,
+            loading: false,
+          }))
+        } catch (err) {
+          if (drillPlayRequestIdRef.current !== requestId) return
+          setDrillPlayState((prev) => ({
+            ...prev,
+            error:
+              err instanceof Error
+                ? err.message
+                : 'Failed to load drill video.',
+            loading: false,
+          }))
+        }
+      })()
+    },
+    [orgId],
+  )
+
+  const closeDrillPlay = React.useCallback(() => {
+    drillPlayRequestIdRef.current += 1
+    setDrillPlayState({
+      open: false,
+      drill: null,
+      url: null,
+      loading: false,
+      error: null,
+    })
+  }, [])
+
   if (isLoading) {
     return (
       <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -552,12 +637,22 @@ export default function EvaluationReportDetailPage() {
                 targetReps={workoutTargetReps}
                 onRepCount={handleRepCount}
                 isLastLevel={isLastLevel}
+                onPlayDrill={openDrillPlay}
               />
             )}
             {tabIndex === 2 && <DataTab report={report} />}
           </Box>
         </Paper>
       </Stack>
+
+      <DrillsPlayDialog
+        open={drillPlayState.open}
+        drillName={drillPlayState.drill?.title ?? null}
+        loading={drillPlayState.loading}
+        error={drillPlayState.error}
+        playUrl={drillPlayState.url}
+        onClose={closeDrillPlay}
+      />
     </Box>
   )
 }
@@ -658,6 +753,7 @@ function WorkoutsTab({
   targetReps,
   onRepCount,
   isLastLevel,
+  onPlayDrill,
 }: {
   report: EvaluationReport
   activeWorkout: EvaluationReport['workouts'][number] | null
@@ -666,6 +762,7 @@ function WorkoutsTab({
   targetReps: number
   onRepCount: () => void
   isLastLevel: boolean
+  onPlayDrill: (drill: ReportVideo) => void
 }) {
   if (!activeWorkout) {
     return (
@@ -720,6 +817,7 @@ function WorkoutsTab({
         <ReportVideoGallery
           videos={activeWorkout.drills.slice(0, 3)}
           emptyLabel="No drills available for this level."
+          onVideoClick={onPlayDrill}
         />
       </Box>
     </Stack>
@@ -762,9 +860,11 @@ function DataTab({ report }: { report: EvaluationReport }) {
 function ReportVideoGallery({
   videos,
   emptyLabel,
+  onVideoClick,
 }: {
   videos: ReportVideo[]
   emptyLabel: string
+  onVideoClick?: (video: ReportVideo) => void
 }) {
   if (videos.length === 0) {
     return (
@@ -787,7 +887,24 @@ function ReportVideoGallery({
       }}
     >
       {videos.map((video) => (
-        <Card key={video.id} variant="outlined">
+        <Card
+          key={video.id}
+          variant="outlined"
+          onClick={onVideoClick ? () => onVideoClick(video) : undefined}
+          onKeyDown={
+            onVideoClick
+              ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onVideoClick(video)
+                  }
+                }
+              : undefined
+          }
+          role={onVideoClick ? 'button' : undefined}
+          tabIndex={onVideoClick ? 0 : undefined}
+          sx={{ cursor: onVideoClick ? 'pointer' : 'default' }}
+        >
           <Box
             sx={{
               position: 'relative',

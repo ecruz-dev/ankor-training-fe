@@ -18,7 +18,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter'
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
-import BarChartIcon from '@mui/icons-material/BarChart'
 import RepeatIcon from '@mui/icons-material/Repeat'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import ShareIcon from '@mui/icons-material/Share'
@@ -130,11 +129,6 @@ export default function HomeDashboardPage() {
 
   const summaryStats = React.useMemo(
     () => [
-      {
-        label: 'Sets Completed',
-        value: '0',
-        icon: <BarChartIcon fontSize="small" />,
-      },
       {
         label: 'Total Reps',
         value: totalRepsValue,
