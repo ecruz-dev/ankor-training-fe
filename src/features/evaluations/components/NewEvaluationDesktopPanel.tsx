@@ -2,8 +2,7 @@ import * as React from 'react'
 import { Box, Paper, Stack, Typography } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import EvaluationColumnMenu from './EvaluationColumnMenu'
-import PastEvaluationsPanel from './PastEvaluationsPanel'
-import type { Athlete, PastEvaluationRow } from '../types'
+import type { Athlete } from '../types'
 
 type NewEvaluationDesktopPanelProps = {
   canRenderMatrix: boolean
@@ -14,11 +13,6 @@ type NewEvaluationDesktopPanelProps = {
   selectedAthletes: Athlete[]
   onAthleteChange: (nextId: string | null) => void
   onOpenSkillsDialog: (athleteId: string, categoryId: string) => void
-  showPastPanel: boolean
-  pastEvaluations: PastEvaluationRow[]
-  loadingPast: boolean
-  pastError: string | null
-  activeAthleteId: string | null
 }
 
 export default function NewEvaluationDesktopPanel({
@@ -30,11 +24,6 @@ export default function NewEvaluationDesktopPanel({
   selectedAthletes,
   onAthleteChange,
   onOpenSkillsDialog,
-  showPastPanel,
-  pastEvaluations,
-  loadingPast,
-  pastError,
-  activeAthleteId,
 }: NewEvaluationDesktopPanelProps) {
   const isAthleteField = React.useCallback(
     (field: string) => selectedAthletes.some((athlete) => athlete.id === field),
@@ -43,7 +32,7 @@ export default function NewEvaluationDesktopPanel({
 
   return (
     <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} alignItems="stretch">
-      <Box sx={{ flex: showPastPanel ? 2 : 1, minWidth: 0 }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Paper sx={{ height: 520, p: 1 }}>
           {canRenderMatrix ? (
             <DataGrid
@@ -89,20 +78,6 @@ export default function NewEvaluationDesktopPanel({
           )}
         </Paper>
       </Box>
-
-      {showPastPanel && (
-        <Box sx={{ flex: 1, minWidth: { xs: '100%', lg: 320 }, maxWidth: { lg: 400 } }}>
-          <PastEvaluationsPanel
-            layout="side"
-            athletes={selectedAthletes}
-            activeAthleteId={activeAthleteId}
-            onAthleteChange={onAthleteChange}
-            loading={loadingPast}
-            error={pastError}
-            evaluations={pastEvaluations}
-          />
-        </Box>
-      )}
     </Stack>
   )
 }

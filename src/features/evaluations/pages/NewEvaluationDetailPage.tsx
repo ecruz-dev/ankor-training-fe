@@ -14,7 +14,6 @@ import NewEvaluationDesktopPanel from '../components/NewEvaluationDesktopPanel'
 import NewEvaluationFilters from '../components/NewEvaluationFilters'
 import NewEvaluationMobilePanel from '../components/NewEvaluationMobilePanel'
 import { useEvaluationLookups } from '../hooks/useEvaluationLookups'
-import { usePastEvaluations } from '../hooks/usePastEvaluations'
 import { useSkillsDialog } from '../hooks/useSkillsDialog'
 import { buildEvaluationItems } from '../utils/buildEvaluationItems'
 import { getRatingScale } from '../utils/getRatingScale'
@@ -87,14 +86,12 @@ export default function NewEvaluationDetailPage() {
   const [selectedAthletes, setSelectedAthletes] = React.useState<Athlete[]>([])
   const [selectedPosition, setSelectedPosition] = React.useState<string>('')
 
-  // Athlete whose past evaluations are shown in the split view
+  // Active athlete for mobile/category navigation
   const [activeAthleteId, setActiveAthleteId] = React.useState<string | null>(
     null,
   )
 
   
-  // Controls visibility of split view
-  const [showPastPanel, setShowPastPanel] = React.useState(false)
   const [activeCategoryIndex, setActiveCategoryIndex] = React.useState(0)
 
   // Evaluations
@@ -120,14 +117,6 @@ export default function NewEvaluationDetailPage() {
   >([])
   const [bulkCategoryIds, setBulkCategoryIds] = React.useState<string[]>([])
 
-  const { rows: pastEvaluations, loading: loadingPast, error: pastError } =
-    usePastEvaluations({
-      orgId,
-      athleteId: activeAthleteId,
-      enabled: showPastPanel,
-      limit: 10,
-    })
-
   const resetEvaluationState = React.useCallback(() => {
     setEvaluations({})
     setSubskillEvaluations({})
@@ -143,10 +132,6 @@ export default function NewEvaluationDetailPage() {
     },
     [],
   )
-
-  const handleTogglePastPanel = React.useCallback(() => {
-    setShowPastPanel((prev) => !prev)
-  }, [])
 
   // Keep activeAthleteId in sync with selectedAthletes
   React.useEffect(() => {
@@ -862,9 +847,6 @@ export default function NewEvaluationDetailPage() {
         />
 
         <NewEvaluationActions
-          showPastPanel={showPastPanel}
-          onTogglePastPanel={handleTogglePastPanel}
-          disablePastPanelToggle={!hasSelectedAthletes}
           onSave={handleSaveEvaluations}
           saving={saving}
           disableSave={!hasEvaluationContext}
@@ -893,10 +875,6 @@ export default function NewEvaluationDetailPage() {
             onSave={handleSaveEvaluations}
             saving={saving}
             disableSave={mobileSaveDisabled}
-            showPastPanel={showPastPanel}
-            pastEvaluations={pastEvaluations}
-            loadingPast={loadingPast}
-            pastError={pastError}
           />
         ) : (
           <NewEvaluationDesktopPanel
@@ -908,11 +886,6 @@ export default function NewEvaluationDetailPage() {
             selectedAthletes={selectedAthletes}
             onAthleteChange={setActiveAthleteId}
             onOpenSkillsDialog={openSkillsDialog}
-            showPastPanel={showPastPanel}
-            pastEvaluations={pastEvaluations}
-            loadingPast={loadingPast}
-            pastError={pastError}
-            activeAthleteId={activeAthleteId}
           />
         )}
       </Stack>

@@ -28,9 +28,7 @@ import { useAuth } from '../../../app/providers/AuthProvider'
 import EvaluationBulkActionsDialog from '../components/EvaluationBulkActionsDialog'
 import EvaluationColumnMenu from '../components/EvaluationColumnMenu'
 import EvaluationSubskillsDialog from '../components/EvaluationSubskillsDialog'
-import PastEvaluationsPanel from '../components/PastEvaluationsPanel'
 import { useEvaluationLookups } from '../hooks/useEvaluationLookups'
-import { usePastEvaluations } from '../hooks/usePastEvaluations'
 import { useSkillsDialog } from '../hooks/useSkillsDialog'
 import { buildEvaluationItems } from '../utils/buildEvaluationItems'
 import { getRatingScale } from '../utils/getRatingScale'
@@ -90,13 +88,12 @@ export default function EvaluationsDetailPage() {
   const [selectedAthletes, setSelectedAthletes] = React.useState<Athlete[]>([])
   const [selectedPosition, setSelectedPosition] = React.useState<string>('') // ≡ƒæê NEW
 
-  // ≡ƒæë Athlete whose past evaluations are shown in the split view
+  // Active athlete for mobile/category navigation
   const [activeAthleteId, setActiveAthleteId] = React.useState<string | null>(
     null,
   )
 
-  // ≡ƒæë Controls visibility of split view
-  const [showPastPanel, setShowPastPanel] = React.useState(false)
+  // Active category index for mobile navigation
   const [activeCategoryIndex, setActiveCategoryIndex] = React.useState(0)
 
   // ≡ƒö╣ Evaluations
@@ -125,14 +122,6 @@ export default function EvaluationsDetailPage() {
     React.useState<string | null>(null)
   // Categories to apply the bulk grade to (multi-select)
   const [bulkCategoryIds, setBulkCategoryIds] = React.useState<string[]>([])
-
-  const { rows: pastEvaluations, loading: loadingPast, error: pastError } =
-    usePastEvaluations({
-      orgId,
-      athleteId: activeAthleteId,
-      enabled: showPastPanel,
-      limit: 10,
-    })
 
   // Keep activeAthleteId in sync with selectedAthletes
   React.useEffect(() => {
@@ -891,23 +880,14 @@ export default function EvaluationsDetailPage() {
           </Typography>
         </Paper>
 
-        {/* ≡ƒö╣ Actions row: Past evaluations toggle + Save button */}
+        {/* Actions row: Save button */}
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             alignItems: 'center',
           }}
         >
-          <Button
-            variant={showPastPanel ? 'outlined' : 'text'}
-            size="small"
-            onClick={() => setShowPastPanel((prev) => !prev)}
-            disabled={selectedAthletes.length === 0}
-          >
-            {showPastPanel ? 'Hide past evaluations' : 'Past evaluations'}
-          </Button>
-
           <Button
             variant="contained"
             color="primary"
@@ -1202,17 +1182,6 @@ export default function EvaluationsDetailPage() {
               )}
             </Paper>
 
-            {showPastPanel && (
-              <PastEvaluationsPanel
-                layout="stack"
-                athletes={selectedAthletes}
-                activeAthleteId={activeAthleteId}
-                onAthleteChange={setActiveAthleteId}
-                loading={loadingPast}
-                error={pastError}
-                evaluations={pastEvaluations}
-              />
-            )}
           </Stack>
         )}
 
@@ -1223,7 +1192,7 @@ export default function EvaluationsDetailPage() {
             alignItems="stretch"
           >
             {/* LEFT PANEL: Matrix Category ├ù Athletes */}
-            <Box sx={{ flex: showPastPanel ? 2 : 1, minWidth: 0 }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
               <Paper sx={{ height: 520, p: 1 }}>
                 {selectedScorecardId && selectedAthletes.length > 0 ? (
                   <DataGrid
@@ -1284,25 +1253,6 @@ export default function EvaluationsDetailPage() {
             </Box>
 
             {/* RIGHT PANEL: Past evaluations list (mock) */}
-            {showPastPanel && (
-              <Box
-                sx={{
-                  flex: 1,
-                  minWidth: { xs: '100%', lg: 320 },
-                  maxWidth: { lg: 400 },
-                }}
-              >
-                <PastEvaluationsPanel
-                  layout="side"
-                  athletes={selectedAthletes}
-                  activeAthleteId={activeAthleteId}
-                  onAthleteChange={setActiveAthleteId}
-                  loading={loadingPast}
-                  error={pastError}
-                  evaluations={pastEvaluations}
-                />
-              </Box>
-            )}
           </Stack>
         )}
       </Stack>
@@ -1341,4 +1291,7 @@ export default function EvaluationsDetailPage() {
     </Box>
   )
 }
+
+
+
 

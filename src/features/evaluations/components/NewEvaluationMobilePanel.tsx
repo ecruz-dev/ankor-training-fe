@@ -16,11 +16,9 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import PastEvaluationsPanel from './PastEvaluationsPanel'
 import { getRatingScale } from '../utils/getRatingScale'
 import type {
   Athlete,
-  PastEvaluationRow,
   ScorecardCategory,
   ScorecardSubskill,
 } from '../types'
@@ -49,10 +47,6 @@ type NewEvaluationMobilePanelProps = {
   onSave: () => void
   saving: boolean
   disableSave: boolean
-  showPastPanel: boolean
-  pastEvaluations: PastEvaluationRow[]
-  loadingPast: boolean
-  pastError: string | null
 }
 
 export default function NewEvaluationMobilePanel({
@@ -77,10 +71,6 @@ export default function NewEvaluationMobilePanel({
   onSave,
   saving,
   disableSave,
-  showPastPanel,
-  pastEvaluations,
-  loadingPast,
-  pastError,
 }: NewEvaluationMobilePanelProps) {
   const activeAthlete = React.useMemo(
     () => selectedAthletes.find((athlete) => athlete.id === activeAthleteId) ?? null,
@@ -305,17 +295,6 @@ export default function NewEvaluationMobilePanel({
         )}
       </Paper>
 
-      {showPastPanel && (
-        <PastEvaluationsPanel
-          layout="stack"
-          athletes={selectedAthletes}
-          activeAthleteId={activeAthleteId}
-          onAthleteChange={onAthleteChange}
-          loading={loadingPast}
-          error={pastError}
-          evaluations={pastEvaluations}
-        />
-      )}
     </Stack>
   )
 }
