@@ -659,7 +659,8 @@ export default function HomeLayout() {
     location.pathname === path || location.pathname.startsWith(path + '/')
 
   const showMobileBottomNav =
-    !isMdUp && (roleBucket === 'coach' || roleBucket === 'athlete')
+    !isMdUp &&
+    (roleBucket === 'coach' || roleBucket === 'athlete' || roleBucket === 'admin')
 
   const evaluationNavPath =
     roleBucket === 'athlete' ? '/reports/evaluation-reports' : '/evaluations'
