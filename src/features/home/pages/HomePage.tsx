@@ -874,7 +874,7 @@ export default function HomeLayout() {
           <NavItem
             to="/practice-plans"
             icon={<EventNoteIcon />}
-            label="Practice Plans"
+            label="Plans"
             selected={isActive('/practice-plans')}
             onClick={!isMdUp ? toggleMobile : undefined}
           />
@@ -1005,7 +1005,7 @@ export default function HomeLayout() {
               to={evaluationNavPath}
             />
             <BottomNavigationAction
-              label="Practice plans"
+              label="Plans"
               value="/practice-plans"
               icon={<EventNoteIcon />}
               component={RouterLink}
