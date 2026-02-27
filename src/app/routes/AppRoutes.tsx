@@ -56,6 +56,7 @@ const NewSkillPage = lazy(() => import('../../features/skills/pages/NewSkillPage
 const SkillDetailViewPage = lazy(() => import('../../features/skills/pages/SkillDetailViewPage'))
 const SkillEditPage = lazy(() => import('../../features/skills/pages/SkillEditPage'))
 const ScorecardListPage = lazy(() => import('../../features/scorecards/pages/ScorecardListPage'))
+const NewScorecardPage = lazy(() => import('../../features/scorecards/pages/NewScorecardPage'))
 const EditScorecardPage = lazy(() => import('../../features/scorecards/pages/EditScorecardPage'))
 const AthletesListPage = lazy(() => import('../../features/athletes/pages/AthletesListPage')) // ⬅️ added
 const NewAthletePage = lazy(() => import('../../features/athletes/pages/NewAthletePage'))
@@ -145,6 +146,14 @@ export default function AppRoutes() {
             }
           />         
           <Route path="scorecards" element={<ScorecardListPage />} />
+          <Route
+            path="scorecards/new"
+            element={
+              <RequireAdmin fallbackPath="/scorecards">
+                <NewScorecardPage />
+              </RequireAdmin>
+            }
+          />
           <Route
             path="scorecards/:id/edit"
             element={

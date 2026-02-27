@@ -14,6 +14,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
@@ -145,6 +146,13 @@ export default function ScorecardListPage() {
               {headerLabel}
             </Typography>
           </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate("/scorecards/new")}
+          >
+            New template
+          </Button>
         </Stack>
 
         <TextField

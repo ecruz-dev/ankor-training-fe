@@ -118,6 +118,10 @@ export type UpdateScorecardTemplateInput = {
   remove_subskill_ids?: string[];
 };
 
+export type CreateScorecardTemplateInput = UpdateScorecardTemplateInput & {
+  name: string;
+};
+
 export type UpdateScorecardTemplateResponse =
   | {
       ok: true;
@@ -667,6 +671,43 @@ export async function getScorecardTemplateDetail(
   }
   if ((data as any)?.ok === false) {
     throw new Error((data as any)?.error || "Failed to load scorecard template.");
+  }
+
+  return normalizeDetailPayload(data);
+}
+
+/**
+ * POST /functions/v1/api/scorecard
+ */
+export async function createScorecardTemplate(
+  input: CreateScorecardTemplateInput,
+  options: { baseUrl?: string } = {},
+): Promise<ScorecardTemplateDetail> {
+  const payload = normalizeUpdatePayload(input);
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+  const url = `${baseUrl}/functions/v1/api/scorecard`;
+
+  const res = await apiFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    orgId: input.org_id ?? null,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | ScorecardDetailResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to create scorecard template.");
+  }
+
+  if (!data) {
+    throw new Error("Invalid response from create scorecard endpoint.");
   }
 
   return normalizeDetailPayload(data);
