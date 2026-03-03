@@ -17,11 +17,18 @@ export type OrgSignupResponse =
   | { ok: true; userId: string; orgId: string; profileId: string; teamIds?: string[] }
   | { ok: false; error: string; details?: unknown };
 
-const pickUrl = () =>
-  import.meta.env.VITE_ORG_SIGNUP_URL
-  ?? (import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
-        ? `${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL.replace(/\/$/, "")}/org-signup`
-        : "http://localhost:54321/functions/v1/org-signup");
+const pickUrl = () => {
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL ??
+    (import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
+      ? import.meta.env.VITE_SUPABASE_FUNCTIONS_URL.replace(
+          /\/functions\/v1\/?$/,
+          "",
+        )
+      : "http://localhost:54321");
+
+  return `${backendUrl.replace(/\/$/, "")}/functions/v1/org-signup`;
+};
 
 export function buildOrgSignupPayload(form: HTMLFormElement): OrgSignupPayload {
   // We only READ from the form; we are NOT sending multipart.
