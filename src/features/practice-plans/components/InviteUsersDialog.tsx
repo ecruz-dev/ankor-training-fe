@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -14,6 +15,7 @@ import {
   ListItemIcon,
   ListItemText,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -48,6 +50,8 @@ export default function InviteUsersDialog({
   const [inviteSaving, setInviteSaving] = React.useState(false);
   const [inviteResult, setInviteResult] = React.useState<string | null>(null);
   const [inviteSelectedIds, setInviteSelectedIds] = React.useState<string[]>([]);
+  const [toastOpen, setToastOpen] = React.useState(false);
+  const [toastMessage, setToastMessage] = React.useState("");
 
   const resolvedOrgId = (orgId ?? "").trim();
   const resolvedPlanId = (planId ?? "").trim();
@@ -166,6 +170,9 @@ export default function InviteUsersDialog({
 
       setInviteResult(message);
       setInviteSelectedIds([]);
+      setToastMessage("Invites have been sent successfully.");
+      setToastOpen(true);
+      onClose();
     } catch (err: any) {
       setInviteSendError(err?.message || "Failed to send invites.");
     } finally {
@@ -174,10 +181,11 @@ export default function InviteUsersDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={1.25} sx={{ mt: 0.5 }}>
+    <>
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
           <TextField
             fullWidth
             size="small"
@@ -295,17 +303,34 @@ export default function InviteUsersDialog({
             </Typography>
           )}
         </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSendInvites}
-          variant="contained"
-          disabled={inviteSaving || inviteSelectedIds.length === 0}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={handleSendInvites}
+            variant="contained"
+            disabled={inviteSaving || inviteSelectedIds.length === 0}
+          >
+            {inviteSaving ? "Sending..." : "Send invites"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={3000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setToastOpen(false)}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%" }}
         >
-          {inviteSaving ? "Sending..." : "Send invites"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {toastMessage || "Invites have been sent successfully."}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }
