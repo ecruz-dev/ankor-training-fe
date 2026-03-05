@@ -18,16 +18,17 @@ export type OrgSignupResponse =
   | { ok: false; error: string; details?: unknown };
 
 const pickUrl = () => {
-  const backendUrl =
-    import.meta.env.VITE_BACKEND_URL ??
-    (import.meta.env.VITE_SUPABASE_FUNCTIONS_URL
-      ? import.meta.env.VITE_SUPABASE_FUNCTIONS_URL.replace(
-          /\/functions\/v1\/?$/,
-          "",
-        )
-      : "http://localhost:54321");
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  if (!backendUrl) {
+    throw new Error("Missing VITE_BACKEND_URL for org signup.");
+  }
 
-  return `${backendUrl.replace(/\/$/, "")}/functions/v1/org-signup`;
+  const normalized = backendUrl.replace(/\/$/, "");
+  if (normalized.includes("/functions/v1")) {
+    return `${normalized.replace(/\/$/, "")}/org-signup`;
+  }
+
+  return `${normalized}/functions/v1/org-signup`;
 };
 
 export function buildOrgSignupPayload(form: HTMLFormElement): OrgSignupPayload {
