@@ -43,6 +43,7 @@ import EventNoteIcon from '@mui/icons-material/EventNote'
 // import SportsIcon from '@mui/icons-material/Sports'
 import EmojiPeopleIcon from '@mui/icons-material/EmojiPeople'
 import GroupsIcon from '@mui/icons-material/Groups'
+import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom'
 import VpnKeyIcon from '@mui/icons-material/VpnKey'
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter'
 import AssignmentIcon from '@mui/icons-material/Assignment'
@@ -69,6 +70,7 @@ type MenuKey =
   | 'skills'
   | 'scorecards'
   | 'athletes'
+  | 'parents'
   | 'coaches'
   | 'teams'
   | 'easy-join-codes'
@@ -84,6 +86,7 @@ const COACH_MENU_KEYS = new Set<MenuKey>([
   'skills',
   'scorecards',
   'athletes',
+  'parents',
   'coaches',
   'teams',
   'easy-join-codes',
@@ -794,6 +797,15 @@ export default function HomeLayout() {
             icon={<PeopleIconSafe />}
             label="Athletes"
             selected={isActive('/athletes')}
+            onClick={!isMdUp ? toggleMobile : undefined}
+          />
+        )}
+        {canAccess('parents') && (
+          <NavItem
+            to="/parents"
+            icon={<FamilyRestroomIcon />}
+            label="Parents"
+            selected={isActive('/parents')}
             onClick={!isMdUp ? toggleMobile : undefined}
           />
         )}
