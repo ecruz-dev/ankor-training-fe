@@ -599,17 +599,23 @@ export default function EvaluationReportDetailPage() {
 
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <LabelValue label="Name" value={report.athleteName} />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <LabelValue
                 label="Date"
                 value={formatEvaluationReportDate(report.evaluatedAt)}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <LabelValue label="Evaluator" value={report.evaluatorName} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <LabelValue
+                label="Evaluation ID"
+                value={String(report.evaluationId)}
+              />
             </Grid>
           </Grid>
         </Paper>
