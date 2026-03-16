@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    envPrefix: ['VITE_', 'ANKOR_'],
     server: {
       // Allow access via ngrok or other external hosts.
       allowedHosts: true,
