@@ -31,6 +31,33 @@ export type CoachSummaryResponse =
   | { ok: true; data: CoachSummaryData }
   | { ok: false; error: string };
 
+export type CoachDetailResponse =
+  | { ok: true; coach?: CoachListItem; data?: CoachListItem }
+  | { ok: false; error: string };
+
+export type CreateCoachInput = {
+  org_id: string;
+  full_name: string;
+  email: string;
+  password: string;
+  phone?: string | null;
+  cell_number?: string | null;
+};
+
+export type CreateCoachResponse =
+  | { ok: true; coach?: CoachListItem; data?: CoachListItem }
+  | { ok: false; error: string };
+
+export type UpdateCoachInput = {
+  full_name?: string | null;
+  phone?: string | null;
+  cell_number?: string | null;
+};
+
+export type UpdateCoachResponse =
+  | { ok: true; coach?: CoachListItem; data?: CoachListItem }
+  | { ok: false; error: string };
+
 export type ListCoachesParams = {
   orgId: string;
   name?: string;
@@ -124,6 +151,54 @@ export function coachLabel(
   );
 }
 
+function normalizeCreatePayload(input: CreateCoachInput) {
+  if (!input.org_id?.trim()) throw new Error("org_id is required.");
+  if (!input.full_name?.trim()) throw new Error("full_name is required.");
+  if (!input.email?.trim()) throw new Error("email is required.");
+  if (!input.password?.trim()) throw new Error("password is required.");
+
+  return {
+    org_id: input.org_id.trim(),
+    full_name: input.full_name.trim(),
+    email: input.email.trim(),
+    password: input.password.trim(),
+    phone: input.phone?.trim() || null,
+    cell_number: input.cell_number?.trim() || null,
+  };
+}
+
+function normalizeUpdatePayload(input: UpdateCoachInput) {
+  const payload: Record<string, unknown> = {};
+
+  const normalizeRequiredString = (value: unknown, field: string) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    const trimmed = String(value).trim();
+    if (!trimmed) {
+      throw new Error(`${field} is required.`);
+    }
+    return trimmed;
+  };
+
+  const normalizeOptionalString = (value: unknown) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    const trimmed = String(value).trim();
+    return trimmed ? trimmed : null;
+  };
+
+  const fullName = normalizeRequiredString(input.full_name, "full_name");
+  if (fullName !== undefined) payload.full_name = fullName;
+
+  const phone = normalizeOptionalString(input.phone);
+  if (phone !== undefined) payload.phone = phone;
+
+  const cellNumber = normalizeOptionalString(input.cell_number);
+  if (cellNumber !== undefined) payload.cell_number = cellNumber;
+
+  return payload;
+}
+
 /**
  * GET /functions/v1/api/coaches/:coachId/summary
  */
@@ -211,4 +286,124 @@ export async function listCoaches(
         : undefined;
 
   return { items, count };
+}
+
+/**
+ * GET /functions/v1/api/coaches/:coachId
+ */
+export async function getCoachById(
+  coachId: string,
+  options: { orgId?: string | null; baseUrl?: string } = {},
+): Promise<CoachListItem> {
+  if (!coachId?.trim()) {
+    throw new Error("coachId is required.");
+  }
+
+  const { orgId = null, baseUrl = DEFAULT_BASE_URL } = options;
+  const url = `${baseUrl}/functions/v1/api/coaches/${coachId.trim()}`;
+
+  const res = await apiFetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | CoachDetailResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to load coach.");
+  }
+
+  const raw = (data as any)?.coach ?? (data as any)?.data ?? data;
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid response from coach detail endpoint.");
+  }
+
+  return normalizeCoach(raw);
+}
+
+/**
+ * POST /functions/v1/api/coaches/
+ */
+export async function createCoach(
+  input: CreateCoachInput,
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<CoachListItem> {
+  const payload = normalizeCreatePayload(input);
+  const url = `${baseUrl}/functions/v1/api/coaches/`;
+
+  const res = await apiFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    orgId: payload.org_id ?? null,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | CreateCoachResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || "Failed to create coach.");
+  }
+
+  const raw = (data as any)?.coach ?? (data as any)?.data ?? data;
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid response from coach create endpoint.");
+  }
+
+  return normalizeCoach(raw);
+}
+
+/**
+ * PATCH /functions/v1/api/coaches/:coachId
+ */
+export async function updateCoach(
+  coachId: string,
+  input: UpdateCoachInput,
+  options: { orgId?: string | null; baseUrl?: string } = {},
+): Promise<CoachListItem> {
+  if (!coachId?.trim()) {
+    throw new Error("coachId is required.");
+  }
+
+  const { orgId = null, baseUrl = DEFAULT_BASE_URL } = options;
+  const payload = normalizeUpdatePayload(input);
+  const url = `${baseUrl}/functions/v1/api/coaches/${coachId.trim()}`;
+
+  const res = await apiFetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | UpdateCoachResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to update coach.");
+  }
+
+  const raw = (data as any)?.coach ?? (data as any)?.data ?? data;
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid response from coach update endpoint.");
+  }
+
+  return normalizeCoach(raw);
 }

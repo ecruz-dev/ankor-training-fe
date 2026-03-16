@@ -16,6 +16,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
@@ -166,6 +167,13 @@ export default function CoachListPage() {
             {countLabel} coaches
           </Typography>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => navigate("/coaches/new")}
+        >
+          New coach
+        </Button>
       </Stack>
 
       <TextField
@@ -261,6 +269,18 @@ export default function CoachListPage() {
                             }}
                           >
                             View
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/coaches/${row.id}/edit`, {
+                                state: { coach: row },
+                              });
+                            }}
+                          >
+                            Edit
                           </Button>
                         </Stack>
                       </ListItemButton>

@@ -63,6 +63,8 @@ const NewAthletePage = lazy(() => import('../../features/athletes/pages/NewAthle
 const AthleteDetailPage = lazy(() => import('../../features/athletes/pages/AthleteDetailPage'))
 const EditAthletePage = lazy(() => import('../../features/athletes/pages/EditAthletePage'))
 const CoachListPage = lazy(() => import('../../features/coaches/pages/CoachListPage'))
+const NewCoachPage = lazy(() => import('../../features/coaches/pages/NewCoachPage'))
+const EditCoachPage = lazy(() => import('../../features/coaches/pages/EditCoachPage'))
 const ParentListPage = lazy(() => import('../../features/parents/pages/ParentListPage'))
 const NewParentPage = lazy(() => import('../../features/parents/pages/NewParentPage'))
 const ParentViewPage = lazy(() => import('../../features/parents/pages/ParentViewPage'))
@@ -173,6 +175,8 @@ export default function AppRoutes() {
           <Route path="athletes/:id" element={<AthleteDetailPage />} />
           <Route path="athletes/:id/edit" element={<EditAthletePage />} />
           <Route path="coaches" element={<CoachListPage />} />
+          <Route path="coaches/new" element={<NewCoachPage />} />
+          <Route path="coaches/:id/edit" element={<EditCoachPage />} />
           <Route path="parents" element={<ParentListPage />} />
           <Route path="parents/new" element={<NewParentPage />} />
           <Route path="parents/:id" element={<ParentViewPage />} />
