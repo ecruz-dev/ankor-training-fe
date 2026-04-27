@@ -125,7 +125,8 @@ export type EvaluationSkillVideoRow = {
   evaluation_id: string
   skill_id: string
   title: string
-  object_path: string
+  object_path: string | null
+  url: string | null
   rating: number | null
 }
 

@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Divider,
   Grid,
   IconButton,
   Paper,
@@ -22,8 +21,6 @@ import RepeatIcon from '@mui/icons-material/Repeat'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import ShareIcon from '@mui/icons-material/Share'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
-import UploadFileIcon from '@mui/icons-material/UploadFile'
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 import { useAuth } from '../../../app/providers/AuthProvider'
 import {
   getLatestWorkoutDrills,
@@ -431,40 +428,6 @@ export default function HomeDashboardPage() {
                       </Grid>
                     ))}
                   </Grid>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card elevation={0} sx={{ borderRadius: 3, boxShadow: 2 }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <UploadFileIcon fontSize="small" />
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      Imported Data
-                    </Typography>
-                  </Stack>
-                  <Divider />
-                  <Typography variant="body2" color="text.secondary">
-                    No Imported Data for this session.
-                  </Typography>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card elevation={0} sx={{ borderRadius: 3, boxShadow: 2 }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <EmojiEventsIcon fontSize="small" />
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      New PR&apos;s
-                    </Typography>
-                  </Stack>
-                  <Divider />
-                  <Typography variant="body2" color="text.secondary">
-                    No PRs for this session.
-                  </Typography>
                 </Stack>
               </CardContent>
             </Card>

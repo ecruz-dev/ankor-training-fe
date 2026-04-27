@@ -1,8 +1,10 @@
 export type ReportVideo = {
   id: string
+  skillId?: string | null
   title: string
   duration: string
   thumbnailUrl?: string | null
+  playUrl?: string | null
   tag?: string | null
 }
 

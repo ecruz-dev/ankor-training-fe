@@ -31,6 +31,8 @@ import {
 } from '../../evaluations/api/evaluationsApi'
 import DrillsPlayDialog from '../../drills/components/list/DrillsPlayDialog'
 import { getDrillMediaPlay } from '../../drills/services/drillsService'
+import SkillsPlayDialog from '../../skills/components/list/SkillsPlayDialog'
+import { getSkillMediaPlay } from '../../skills/services/skillsService'
 import { useAuth } from '../../../app/providers/AuthProvider'
 import { type EvaluationReport, type ReportVideo } from '../data/mockEvaluationReports'
 import { formatEvaluationReportDate } from '../utils/formatEvaluationReportDate'
@@ -142,7 +144,21 @@ export default function EvaluationReportDetailPage() {
     loading: false,
     error: null,
   })
+  const [skillPlayState, setSkillPlayState] = React.useState<{
+    open: boolean
+    video: ReportVideo | null
+    url: string | null
+    loading: boolean
+    error: string | null
+  }>({
+    open: false,
+    video: null,
+    url: null,
+    loading: false,
+    error: null,
+  })
   const drillPlayRequestIdRef = React.useRef(0)
+  const skillPlayRequestIdRef = React.useRef(0)
 
   const loadReport = React.useCallback(async () => {
     if (!id) {
@@ -251,12 +267,20 @@ export default function EvaluationReportDetailPage() {
       })
 
       const skillVideos = skillVideoRows.map((item, index) => {
+        const skillId =
+          typeof item.skill_id === 'string' && item.skill_id.trim()
+            ? item.skill_id.trim()
+            : null
         const title =
           typeof item.title === 'string' && item.title.trim()
             ? item.title.trim()
             : 'Skill video'
         const objectPath =
           typeof item.object_path === 'string' ? item.object_path.trim() : ''
+        const playUrl =
+          typeof item.url === 'string' && item.url.trim()
+            ? item.url.trim()
+            : null
         const thumbnailUrl = objectPath.startsWith('http')
           ? objectPath
           : null
@@ -266,13 +290,15 @@ export default function EvaluationReportDetailPage() {
 
         return {
           id:
-            item.skill_id ||
+            skillId ||
             item.object_path ||
             item.evaluation_id ||
             `skill-video-${index}`,
+          skillId,
           title,
           duration: '',
           thumbnailUrl,
+          playUrl,
           tag,
         }
       })
@@ -518,6 +544,87 @@ export default function EvaluationReportDetailPage() {
     })
   }, [])
 
+  const openSkillPlay = React.useCallback(
+    (video: ReportVideo) => {
+      const directPlayUrl = video.playUrl?.trim() || null
+      const skillId = video.skillId?.trim() || null
+      const resolvedOrgId = orgId?.trim()
+
+      if (!resolvedOrgId) {
+        setSkillPlayState({
+          open: true,
+          video,
+          url: directPlayUrl,
+          loading: false,
+          error: directPlayUrl
+            ? null
+            : 'Missing org_id for this account.',
+        })
+        return
+      }
+
+      if (!skillId) {
+        setSkillPlayState({
+          open: true,
+          video,
+          url: directPlayUrl,
+          loading: false,
+          error: directPlayUrl
+            ? null
+            : 'Missing skill id for this video.',
+        })
+        return
+      }
+
+      setSkillPlayState({
+        open: true,
+        video,
+        url: null,
+        loading: true,
+        error: null,
+      })
+
+      const requestId = ++skillPlayRequestIdRef.current
+      void (async () => {
+        try {
+          const response = await getSkillMediaPlay(skillId, {
+            orgId: resolvedOrgId,
+          })
+          if (skillPlayRequestIdRef.current !== requestId) return
+          setSkillPlayState((prev) => ({
+            ...prev,
+            url: response.play_url,
+            loading: false,
+          }))
+        } catch (err) {
+          if (skillPlayRequestIdRef.current !== requestId) return
+          setSkillPlayState((prev) => ({
+            ...prev,
+            url: directPlayUrl,
+            error: directPlayUrl
+              ? null
+              : err instanceof Error
+              ? err.message
+              : 'Failed to load skill video.',
+            loading: false,
+          }))
+        }
+      })()
+    },
+    [orgId],
+  )
+
+  const closeSkillPlay = React.useCallback(() => {
+    skillPlayRequestIdRef.current += 1
+    setSkillPlayState({
+      open: false,
+      video: null,
+      url: null,
+      loading: false,
+      error: null,
+    })
+  }, [])
+
   if (isLoading) {
     return (
       <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -633,7 +740,9 @@ export default function EvaluationReportDetailPage() {
           </Tabs>
           <Divider />
           <Box sx={{ p: { xs: 2, md: 3 } }}>
-            {tabIndex === 0 && <SkillsTab report={report} />}
+            {tabIndex === 0 && (
+              <SkillsTab report={report} onPlaySkillVideo={openSkillPlay} />
+            )}
             {tabIndex === 1 && (
               <WorkoutsTab
                 report={report}
@@ -659,6 +768,14 @@ export default function EvaluationReportDetailPage() {
         playUrl={drillPlayState.url}
         onClose={closeDrillPlay}
       />
+      <SkillsPlayDialog
+        open={skillPlayState.open}
+        skillName={skillPlayState.video?.title ?? null}
+        loading={skillPlayState.loading}
+        error={skillPlayState.error}
+        playUrl={skillPlayState.url}
+        onClose={closeSkillPlay}
+      />
     </Box>
   )
 }
@@ -676,7 +793,13 @@ function LabelValue({ label, value }: { label: string; value: string }) {
   )
 }
 
-function SkillsTab({ report }: { report: EvaluationReport }) {
+function SkillsTab({
+  report,
+  onPlaySkillVideo,
+}: {
+  report: EvaluationReport
+  onPlaySkillVideo: (video: ReportVideo) => void
+}) {
   return (
     <Stack spacing={3}>
       <Box>
@@ -745,6 +868,7 @@ function SkillsTab({ report }: { report: EvaluationReport }) {
         <ReportVideoGallery
           videos={report.skillVideos}
           emptyLabel="No skill videos yet."
+          onVideoClick={onPlaySkillVideo}
         />
       </Box>
     </Stack>
