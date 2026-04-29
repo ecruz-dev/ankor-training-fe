@@ -10,6 +10,7 @@ export type OrgSignupPayload = {
     name: string;
     programGender: "girls" | "boys" | "coed";
   };
+  sport_id: string | null;
   teams: { name: string }[];
 };
 
@@ -46,6 +47,7 @@ export function buildOrgSignupPayload(form: HTMLFormElement): OrgSignupPayload {
   const programGender = (["girls","boys","coed"].includes(genderRaw) ? genderRaw : "coed") as
     "girls" | "boys" | "coed";
 
+  const selectedSportId = String(fd.get("teamsSport") ?? "").trim() || null;
   let teams: { name: string }[] = [];
   const teamsJsonStr = String(fd.get("teamsJson") ?? "");
   if (teamsJsonStr) {
@@ -60,6 +62,7 @@ export function buildOrgSignupPayload(form: HTMLFormElement): OrgSignupPayload {
   return {
     admin: { firstName, lastName, email, phone, password },
     organization: { name: orgName, programGender },
+    sport_id: selectedSportId,
     teams,
   };
 }

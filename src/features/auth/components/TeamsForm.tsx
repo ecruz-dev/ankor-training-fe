@@ -15,8 +15,10 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined';
+import type { Sport } from '../services/sportsService';
 
 const FormGrid = styled(Grid)(() => ({
   display: 'flex',
@@ -29,13 +31,17 @@ type TeamRow = {
   name: string;
 };
 
-const sportOptions = ['Lacrosse', 'Soccer', 'Basketball', 'Baseball', 'Hockey', 'Other'];
-
 export default function TeamsForm({
   onChange,
+  sports,
+  sportsLoading = false,
+  sportsError = null,
   initial = [{ id: crypto.randomUUID?.() ?? String(Date.now()), sport: '', name: '' }],
 }: {
   onChange?: (rows: TeamRow[]) => void;
+  sports?: Sport[];
+  sportsLoading?: boolean;
+  sportsError?: string | null;
   initial?: TeamRow[]; // if provided with mixed sports, we default to the first row's sport
 }) {
   const initialSport = (initial.find((r) => r.sport)?.sport) ?? '';
@@ -89,16 +95,22 @@ export default function TeamsForm({
           value={selectedSport}
           onChange={(e) => handleSportChange(e.target.value as string)}
           required
+          disabled={sportsLoading || Boolean(sportsError) || !sports?.length}
         >
           <MenuItem value="">
-            <em>Select sport</em>
+            <em>{sportsLoading ? 'Loading sports...' : 'Select sport'}</em>
           </MenuItem>
-          {sportOptions.map((opt) => (
-            <MenuItem key={opt} value={opt.toLowerCase()}>
-              {opt}
+          {(sports ?? []).map((sport) => (
+            <MenuItem key={sport.id} value={sport.id}>
+              {sport.name}
             </MenuItem>
           ))}
         </Select>
+        {sportsError && (
+          <Typography color="error" variant="caption" sx={{ mt: 0.75 }}>
+            {sportsError}
+          </Typography>
+        )}
       </FormGrid>
 
       <FormGrid size={{ xs: 12 }}>

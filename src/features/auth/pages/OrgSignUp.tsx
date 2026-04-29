@@ -1,8 +1,6 @@
 import * as React from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import CssBaseline from '@mui/material/CssBaseline'
 import Grid from '@mui/material/Grid'
 import Stack from '@mui/material/Stack'
@@ -15,7 +13,6 @@ import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
 import { useNavigate } from 'react-router-dom'
 
 import AdminInfoForm from '../components/AdminInfoForm'
-import InfoMobile from '../components/InfoMobile'
 import OrganizationForm from '../components/OrganizationForm'
 import TeamsForm from '../components/TeamsForm'
 import AppTheme from '../theme/AppTheme'
@@ -24,6 +21,7 @@ import AnkorBrandPanel from '../components/AnkorBrandPanel'
 
 // JSON-only backend submit helpers
 import { buildOrgSignupPayload, submitOrgSignupJson } from '../services/orgSignUpService'
+import { listSports, type Sport } from '../services/sportsService'
 
 const steps = ['Admin Info', 'Organization', 'Teams']
 
@@ -46,12 +44,45 @@ export default function OrgSignUp(props: { disableCustomTheme?: boolean }) {
   const [submitting, setSubmitting] = React.useState(false)
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [serverSuccess, setServerSuccess] = React.useState<string | null>(null)
+  const [sports, setSports] = React.useState<Sport[]>([])
+  const [sportsLoading, setSportsLoading] = React.useState(true)
+  const [sportsError, setSportsError] = React.useState<string | null>(null)
 
   // Single form wrapper so we can read values and build JSON
   const formRef = React.useRef<HTMLFormElement>(null)
 
   const handleBack = () => setActiveStep((s) => Math.max(0, s - 1))
   const goNext = () => setActiveStep((s) => Math.min(steps.length - 1, s + 1))
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function loadSports() {
+      setSportsLoading(true)
+      setSportsError(null)
+      try {
+        const result = await listSports()
+        if (!cancelled) {
+          setSports(result.items)
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setSports([])
+          setSportsError(err?.message ?? 'Failed to load sports.')
+        }
+      } finally {
+        if (!cancelled) {
+          setSportsLoading(false)
+        }
+      }
+    }
+
+    loadSports()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault()
@@ -219,7 +250,7 @@ export default function OrgSignUp(props: { disableCustomTheme?: boolean }) {
   <OrganizationForm />
 </Box>
 <Box sx={{ display: activeStep === 2 ? 'block' : 'none' }}>
-  <TeamsForm />
+  <TeamsForm sports={sports} sportsLoading={sportsLoading} sportsError={sportsError} />
 </Box>
 
                   {/* Server feedback */}
