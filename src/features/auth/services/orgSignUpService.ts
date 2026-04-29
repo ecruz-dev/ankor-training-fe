@@ -28,7 +28,7 @@ const pickUrl = () => {
     return `${normalized.replace(/\/$/, "")}/org-signup`;
   }
 
-  return `${normalized}/functions/v1/org-signup`;
+  return `${normalized}/functions/v1/api/org/signup`;
 };
 
 export function buildOrgSignupPayload(form: HTMLFormElement): OrgSignupPayload {

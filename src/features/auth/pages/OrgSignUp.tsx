@@ -12,6 +12,7 @@ import Stepper from '@mui/material/Stepper'
 import Typography from '@mui/material/Typography'
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
+import { useNavigate } from 'react-router-dom'
 
 import AdminInfoForm from '../components/AdminInfoForm'
 import InfoMobile from '../components/InfoMobile'
@@ -40,6 +41,7 @@ function getStepContent(step: number) {
 }
 
 export default function OrgSignUp(props: { disableCustomTheme?: boolean }) {
+  const navigate = useNavigate()
   const [activeStep, setActiveStep] = React.useState(0)
   const [submitting, setSubmitting] = React.useState(false)
   const [serverError, setServerError] = React.useState<string | null>(null)
@@ -167,21 +169,7 @@ export default function OrgSignUp(props: { disableCustomTheme?: boolean }) {
             </Box>
           </Box>
 
-          {/* Mobile summary (left intact) */}
-          <Card sx={{ display: { xs: 'flex', md: 'none' }, width: '100%' }}>
-            <CardContent
-              sx={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' }}
-            >
-              <div>
-                <Typography variant="subtitle2" gutterBottom>
-                  Selected products
-                </Typography>
-                <Typography variant="body1">{activeStep >= 2 ? '$144.97' : '$134.98'}</Typography>
-              </div>
-              <InfoMobile totalPrice={activeStep >= 2 ? '$144.97' : '$134.98'} />
-            </CardContent>
-          </Card>
-
+          
           {/* Main content */}
           <Box
             sx={{
@@ -213,7 +201,13 @@ export default function OrgSignUp(props: { disableCustomTheme?: boolean }) {
                   <Typography variant="h1">🎉</Typography>
                   <Typography variant="h5">Organization created!</Typography>
                   {serverSuccess && <Typography>{serverSuccess}</Typography>}
-                  <Button variant="contained" sx={{ alignSelf: 'start' }}>Go to dashboard</Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate('/sign-in')}
+                    sx={{ width: { xs: '100%', sm: 'fit-content' } }}
+                  >
+                    Go to login
+                  </Button>
                 </Stack>
               ) : (
                 <React.Fragment>
