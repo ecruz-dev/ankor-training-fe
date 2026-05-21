@@ -1,13 +1,29 @@
 import * as React from "react";
-import { Box, Stack, Typography, Button } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Chip,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import {
+  listDrills,
+  type DrillItem,
+} from "../../drills/services/drillsService";
+import {
+  bulkUpdateSkillDrillMap,
   createSkillMedia,
   createSkillMediaUploadUrl,
   getSkillById,
+  getSkillDrillMap,
   updateSkill,
   type Skill,
+  type SkillDrillMapItem,
 } from "../services/skillsService";
 import SkillFormFields from "../components/SkillFormFields";
 import SkillRecordingControls from "../components/SkillRecordingControls";
@@ -22,6 +38,8 @@ import { validateSkillForm } from "../utils/validation";
 
 type SelectOption = { id: string; label: string };
 
+const DRILL_OPTION_LIMIT = 100;
+
 const ensureOption = (options: SelectOption[], value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return options;
@@ -29,6 +47,57 @@ const ensureOption = (options: SelectOption[], value: string) => {
     (option) => option.id.toLowerCase() === trimmed.toLowerCase(),
   );
   return exists ? options : [...options, { id: trimmed, label: trimmed }];
+};
+
+const mergeDrillOptions = (primary: DrillItem[], secondary: DrillItem[]) => {
+  if (secondary.length === 0) return primary;
+
+  const byId = new Map(primary.map((drill) => [drill.id, drill]));
+  const merged = [...primary];
+  let changed = false;
+
+  for (const drill of secondary) {
+    if (!drill?.id) continue;
+    if (!byId.has(drill.id)) {
+      merged.push(drill);
+      byId.set(drill.id, drill);
+      changed = true;
+    }
+  }
+
+  return changed ? merged : primary;
+};
+
+const drillOptionLabel = (drill: DrillItem) => {
+  const name = drill.name?.trim() || "Untitled drill";
+  const segment = drill.segment?.name?.trim();
+  return segment ? `${name} (${segment})` : name;
+};
+
+const mapSkillDrillToDrillItem = (item: SkillDrillMapItem): DrillItem | null => {
+  const id = item.drill?.id || item.drill_id;
+  if (!id) return null;
+
+  return {
+    id,
+    org_id: item.drill?.org_id ?? item.org_id ?? null,
+    segment_id: null,
+    name: item.drill?.name?.trim() || id,
+    description: null,
+    level: item.drill?.level ?? null,
+    min_players: null,
+    max_players: null,
+    min_age: null,
+    max_age: null,
+    duration_min: item.drill?.duration_min ?? null,
+    visibility: null,
+    is_archived: false,
+    created_at: item.created_at ?? "",
+    updated_at: item.created_at ?? "",
+    segment: null,
+    skill_tags: [],
+    media: [],
+  };
 };
 
 const pickRecorderMimeType = () => {
@@ -133,6 +202,11 @@ export default function SkillEditPage() {
   const [skillItem, setSkillItem] = React.useState<Skill | null>(null);
   const [skillLoading, setSkillLoading] = React.useState(false);
   const [skillError, setSkillError] = React.useState<string | null>(null);
+  const [drillOptions, setDrillOptions] = React.useState<DrillItem[]>([]);
+  const [selectedDrills, setSelectedDrills] = React.useState<DrillItem[]>([]);
+  const [mappedDrillIds, setMappedDrillIds] = React.useState<string[]>([]);
+  const [drillsLoading, setDrillsLoading] = React.useState(false);
+  const [drillsError, setDrillsError] = React.useState<string | null>(null);
   const [recording, setRecording] = React.useState(false);
   const [recordingError, setRecordingError] = React.useState<string | null>(null);
   const [uploading, setUploading] = React.useState(false);
@@ -154,6 +228,9 @@ export default function SkillEditPage() {
     setRecording(false);
     setRecordingError(null);
     setUploadError(null);
+    setSelectedDrills([]);
+    setMappedDrillIds([]);
+    setDrillsError(null);
   }, [skillId]);
 
   React.useEffect(() => {
@@ -193,6 +270,65 @@ export default function SkillEditPage() {
       active = false;
     };
   }, [authLoading, skillId, orgId]);
+
+  React.useEffect(() => {
+    let active = true;
+
+    const loadDrills = async () => {
+      if (authLoading) return;
+      if (!orgId) {
+        setDrillsError("Missing org_id. Please sign in again.");
+        setDrillOptions([]);
+        setSelectedDrills([]);
+        setMappedDrillIds([]);
+        return;
+      }
+      if (!skillId) {
+        return;
+      }
+
+      setDrillsLoading(true);
+      setDrillsError(null);
+      try {
+        const [optionsResult, mappedResult] = await Promise.all([
+          listDrills({
+            orgId,
+            limit: DRILL_OPTION_LIMIT,
+            offset: 0,
+          }),
+          getSkillDrillMap(skillId, { orgId }),
+        ]);
+
+        if (!active) return;
+
+        const optionsById = new Map(
+          optionsResult.items.map((drill) => [drill.id, drill]),
+        );
+        const mappedItems = mappedResult.items
+          .map((item) => optionsById.get(item.drill_id) ?? mapSkillDrillToDrillItem(item))
+          .filter((drill): drill is DrillItem => Boolean(drill?.id));
+        setSelectedDrills(mappedItems);
+        setMappedDrillIds(mappedItems.map((drill) => drill.id));
+        setDrillOptions(mergeDrillOptions(optionsResult.items, mappedItems));
+      } catch (err) {
+        if (!active) return;
+        setDrillOptions([]);
+        setSelectedDrills([]);
+        setMappedDrillIds([]);
+        setDrillsError(
+          err instanceof Error ? err.message : "Failed to load drill map.",
+        );
+      } finally {
+        if (active) setDrillsLoading(false);
+      }
+    };
+
+    void loadDrills();
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, orgId, skillId]);
 
   React.useEffect(() => {
     if (!skillItem || initializedRef.current) return;
@@ -251,6 +387,35 @@ export default function SkillEditPage() {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
+  const syncDrillMap = async () => {
+    if (!skillId) {
+      throw new Error("Missing skill id in route.");
+    }
+
+    const selectedIds = new Set(selectedDrills.map((drill) => drill.id));
+    const existingIds = new Set(mappedDrillIds);
+    const addIds = Array.from(selectedIds).filter((id) => !existingIds.has(id));
+    const removeIds = Array.from(existingIds).filter((id) => !selectedIds.has(id));
+
+    if (addIds.length === 0 && removeIds.length === 0) {
+      return;
+    }
+
+    if (!orgId) {
+      throw new Error("Missing org_id. Please sign in again.");
+    }
+
+    await bulkUpdateSkillDrillMap({
+      org_id: orgId,
+      skill_id: skillId,
+      add_drill_ids: addIds,
+      remove_drill_ids: removeIds,
+      level: 1,
+    });
+
+    setMappedDrillIds(Array.from(selectedIds));
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError(null);
@@ -287,6 +452,7 @@ export default function SkillEditPage() {
         { orgId },
       );
       setSkillItem(updated);
+      await syncDrillMap();
       setSubmitError(null);
     } catch (err) {
       const message =
@@ -541,6 +707,50 @@ export default function SkillEditPage() {
             />
           }
         />
+
+        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={700}>
+                Drill map
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Select drills that train this skill.
+              </Typography>
+            </Box>
+            <Autocomplete
+              multiple
+              options={drillOptions}
+              value={selectedDrills}
+              onChange={(_, value) => setSelectedDrills(value)}
+              loading={drillsLoading}
+              getOptionLabel={drillOptionLabel}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    variant="outlined"
+                    label={drillOptionLabel(option)}
+                    {...getTagProps({ index })}
+                    key={option.id}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Mapped drills"
+                  placeholder="Select drills"
+                  error={Boolean(drillsError)}
+                  helperText={
+                    drillsError ||
+                    (drillsLoading ? "Loading drills..." : undefined)
+                  }
+                />
+              )}
+            />
+          </Stack>
+        </Paper>
       </Stack>
     </Box>
   );

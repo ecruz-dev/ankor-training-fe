@@ -13,13 +13,19 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getSkillById,
+  getSkillDrillMap,
   getSkillMediaPlay,
   type Skill,
+  type SkillDrillMapItem,
 } from "../services/skillsService";
 import { formatDate } from "../utils/formatters";
 import { pickPrimarySkillMedia } from "../utils/media";
 import { toYouTubeEmbedUrl } from "../../drills/utils/youtube";
 import { useAuth } from "../../../app/providers/AuthProvider";
+
+const drillLabel = (item: SkillDrillMapItem) => {
+  return item.drill?.name?.trim() || item.drill_id || "Untitled drill";
+};
 
 export default function SkillDetailViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +36,9 @@ export default function SkillDetailViewPage() {
   const [playUrl, setPlayUrl] = React.useState<string | null>(null);
   const [playLoading, setPlayLoading] = React.useState(false);
   const [playError, setPlayError] = React.useState<string | null>(null);
+  const [mappedDrills, setMappedDrills] = React.useState<SkillDrillMapItem[]>([]);
+  const [drillsLoading, setDrillsLoading] = React.useState(false);
+  const [drillsError, setDrillsError] = React.useState<string | null>(null);
   const navigate = useNavigate();
   const { profile, loading: authLoading } = useAuth();
   const orgId = profile?.default_org_id?.trim() || null;
@@ -71,6 +80,42 @@ export default function SkillDetailViewPage() {
       active = false;
     };
   }, [authLoading, skillId, orgId]);
+
+  React.useEffect(() => {
+    let active = true;
+
+    const loadDrillMap = async () => {
+      if (authLoading) return;
+      if (!skillId) return;
+      if (!orgId) {
+        setDrillsError("Missing org_id. Please sign in again.");
+        setMappedDrills([]);
+        return;
+      }
+
+      setDrillsLoading(true);
+      setDrillsError(null);
+      try {
+        const response = await getSkillDrillMap(skillId, { orgId });
+        if (!active) return;
+        setMappedDrills(response.items.filter((item) => item.drill_id));
+      } catch (err) {
+        if (!active) return;
+        setMappedDrills([]);
+        setDrillsError(
+          err instanceof Error ? err.message : "Failed to load drill map.",
+        );
+      } finally {
+        if (active) setDrillsLoading(false);
+      }
+    };
+
+    void loadDrillMap();
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, orgId, skillId]);
 
   const primaryMedia = React.useMemo(
     () => pickPrimarySkillMedia(skill?.media ?? []),
@@ -205,6 +250,56 @@ export default function SkillDetailViewPage() {
               <Typography variant="body2" color="text.secondary">
                 {skill.description?.trim() || "No description available."}
               </Typography>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Drill map
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Drills that train this skill.
+                  </Typography>
+                </Box>
+
+                {drillsLoading && (
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="text.secondary">
+                      Loading drill map...
+                    </Typography>
+                  </Stack>
+                )}
+
+                {drillsError && (
+                  <Typography variant="body2" color="error">
+                    {drillsError}
+                  </Typography>
+                )}
+
+                {!drillsLoading && !drillsError && mappedDrills.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    No drills mapped to this skill.
+                  </Typography>
+                )}
+
+                {!drillsLoading && !drillsError && mappedDrills.length > 0 && (
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    {mappedDrills.map((item) => (
+                      <Chip
+                        key={`${item.skill_id}-${item.drill_id}`}
+                        label={
+                          item.level === null
+                            ? drillLabel(item)
+                            : `${drillLabel(item)} - Level ${item.level}`
+                        }
+                        variant="outlined"
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
             </Paper>
 
             <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>

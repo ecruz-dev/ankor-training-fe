@@ -123,6 +123,50 @@ export type SkillMediaPlayResponse =
     }
   | { ok: false; error: string };
 
+export type SkillDrillMapItem = {
+  org_id: string;
+  skill_id: string;
+  drill_id: string;
+  level: number | null;
+  created_at: string;
+  skill?: {
+    id: string;
+    org_id: string;
+    title: string;
+    level: string | null;
+    category: string | null;
+  } | null;
+  drill: {
+    id: string;
+    org_id: string;
+    name: string;
+    level: string | null;
+    duration_min: number | null;
+  } | null;
+};
+
+export type SkillDrillMapListResponse =
+  | { ok: true; count?: number; items?: SkillDrillMapItem[] }
+  | { ok: false; error: string };
+
+export type BulkUpdateSkillDrillMapInput = {
+  org_id: string;
+  skill_id: string;
+  add_drill_ids?: string[];
+  remove_drill_ids?: string[];
+  level?: number | null;
+};
+
+export type BulkUpdateSkillDrillMapResponse =
+  | {
+      ok: true;
+      added_count?: number;
+      removed_count?: number;
+      added?: Array<Omit<SkillDrillMapItem, "skill" | "drill">>;
+      removed?: Array<Omit<SkillDrillMapItem, "skill" | "drill">>;
+    }
+  | { ok: false; error: string };
+
 export type ListSkillsParams = {
   orgId: string;               // required
   sportId?: string | null;     // optional
@@ -422,6 +466,102 @@ export async function getSkillById(
   }
 
   return normalizeSkill(raw);
+}
+
+/**
+ * GET /functions/v1/api/skill-drill-map/:skillId
+ */
+export async function getSkillDrillMap(
+  skillId: string,
+  options: { orgId?: string | null; baseUrl?: string } = {},
+): Promise<{ items: SkillDrillMapItem[]; count?: number }> {
+  if (!skillId?.trim()) {
+    throw new Error("skillId is required.");
+  }
+
+  const { orgId = null, baseUrl = DEFAULT_BASE_URL } = options;
+  const url = `${baseUrl}/functions/v1/api/skill-drill-map/${skillId}`;
+
+  const res = await apiFetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | SkillDrillMapListResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || "Failed to load skill drill map.");
+  }
+
+  return {
+    items: Array.isArray(data.items) ? data.items : [],
+    count:
+      typeof data.count === "number"
+        ? data.count
+        : Number.isFinite(Number(data.count))
+          ? Number(data.count)
+          : undefined,
+  };
+}
+
+/**
+ * POST /functions/v1/api/skill-drill-map/bulk
+ */
+export async function bulkUpdateSkillDrillMap(
+  input: BulkUpdateSkillDrillMapInput,
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<BulkUpdateSkillDrillMapResponse> {
+  if (!input.org_id?.trim()) {
+    throw new Error("org_id is required.");
+  }
+  if (!input.skill_id?.trim()) {
+    throw new Error("skill_id is required.");
+  }
+
+  const normalizeIds = (ids: string[] | undefined) =>
+    Array.from(
+      new Set((ids ?? []).map((id) => id.trim()).filter((id) => id.length > 0)),
+    );
+
+  const payload = {
+    org_id: input.org_id.trim(),
+    skill_id: input.skill_id.trim(),
+    add_drill_ids: normalizeIds(input.add_drill_ids),
+    remove_drill_ids: normalizeIds(input.remove_drill_ids),
+    level: input.level ?? 1,
+  };
+
+  const url = `${baseUrl}/functions/v1/api/skill-drill-map/bulk`;
+
+  const res = await apiFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    orgId: payload.org_id,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | BulkUpdateSkillDrillMapResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error(
+      (data as any)?.error || "Failed to update skill drill map.",
+    );
+  }
+
+  return data;
 }
 
 /**
