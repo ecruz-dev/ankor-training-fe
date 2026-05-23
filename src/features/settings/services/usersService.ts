@@ -3,6 +3,14 @@
 
 import { apiFetch } from '../../../shared/api/apiClient'
 export type UserRole = "coach" | "athlete" | string;
+export type ManagedOrgRole =
+  | "owner"
+  | "admin"
+  | "coach"
+  | "athlete"
+  | "parent"
+  | "staff"
+  | "viewer";
 
 export type UserListItem = {
   user_id: string;
@@ -12,8 +20,39 @@ export type UserListItem = {
   graduation_year: number | null;
 };
 
+export type ManagedUser = {
+  user_id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  phone: string | null;
+  profile_role: string | null;
+  org_id: string | null;
+  org_role: ManagedOrgRole | null;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type UpdateManagedUserInput = {
+  org_id?: string | null;
+  email?: string | null;
+  password?: string | null;
+  role?: ManagedOrgRole | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name?: string | null;
+  phone?: string | null;
+  is_active?: boolean | null;
+};
+
 export type UsersListResponse =
   | { ok: true; count?: number; items?: UserListItem[]; data?: UserListItem[] }
+  | { ok: false; error: string };
+
+export type ManagedUserResponse =
+  | { ok: true; data: ManagedUser }
   | { ok: false; error: string };
 
 export type AuthLoginUser = {
@@ -118,6 +157,23 @@ function normalizeAuthLoginUser(raw: any): AuthLoginUser {
   };
 }
 
+function normalizeManagedUser(raw: any): ManagedUser {
+  return {
+    user_id: typeof raw?.user_id === "string" ? raw.user_id : "",
+    email: typeof raw?.email === "string" ? raw.email : null,
+    first_name: typeof raw?.first_name === "string" ? raw.first_name : null,
+    last_name: typeof raw?.last_name === "string" ? raw.last_name : null,
+    full_name: normalizeFullName(raw),
+    phone: typeof raw?.phone === "string" ? raw.phone : null,
+    profile_role: typeof raw?.profile_role === "string" ? raw.profile_role : null,
+    org_id: typeof raw?.org_id === "string" ? raw.org_id : null,
+    org_role: typeof raw?.org_role === "string" ? raw.org_role as ManagedOrgRole : null,
+    is_active: typeof raw?.is_active === "boolean" ? raw.is_active : null,
+    created_at: typeof raw?.created_at === "string" ? raw.created_at : null,
+    updated_at: typeof raw?.updated_at === "string" ? raw.updated_at : null,
+  };
+}
+
 /**
  * GET /functions/v1/api/users/list?org_id=...
  */
@@ -164,6 +220,82 @@ export async function listUsers(
 }
 
 /**
+ * GET /functions/v1/api/users/:id?org_id=...
+ */
+export async function getManagedUser(
+  params: { userId: string; orgId: string },
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<ManagedUser> {
+  if (!params.userId?.trim()) {
+    throw new Error("userId is required.");
+  }
+  if (!params.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const qs = new URLSearchParams({ org_id: params.orgId.trim() });
+  const url = `${baseUrl}/functions/v1/api/users/${encodeURIComponent(params.userId.trim())}?${qs.toString()}`;
+
+  const res = await apiFetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    orgId: params.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | ManagedUserResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || "Failed to load user.");
+  }
+
+  return normalizeManagedUser(data.data);
+}
+
+/**
+ * PATCH /functions/v1/api/users/:id
+ */
+export async function updateManagedUser(
+  userId: string,
+  input: UpdateManagedUserInput,
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<ManagedUser> {
+  if (!userId?.trim()) {
+    throw new Error("userId is required.");
+  }
+  if (!input.org_id?.trim()) {
+    throw new Error("org_id is required.");
+  }
+
+  const url = `${baseUrl}/functions/v1/api/users/${encodeURIComponent(userId.trim())}`;
+  const res = await apiFetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+    orgId: input.org_id,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | ManagedUserResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || "Failed to update user.");
+  }
+
+  return normalizeManagedUser(data.data);
+}
+
+/**
  * POST /functions/v1/api/auth/login
  */
 export async function loginUser(
@@ -198,6 +330,6 @@ export async function loginUser(
   return normalizeAuthLoginUser(data.user);
 }
 
-export function userLabel(user: UserListItem) {
-  return user.full_name || "Unnamed user";
+export function userLabel(user: UserListItem | null | undefined) {
+  return user?.full_name || "Unnamed user";
 }

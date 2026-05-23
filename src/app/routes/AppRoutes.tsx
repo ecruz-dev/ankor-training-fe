@@ -39,6 +39,7 @@ function RequireAdmin({
 const Login = lazy(() => import('../../features/auth/pages/Login'))
 const SignUp = lazy(() => import('../../features/auth/pages/SignUp'))
 const OrgSignUp = lazy(() => import('../../features/auth/pages/OrgSignUp'))
+const ResetPasswordPage = lazy(() => import('../../features/auth/pages/ResetPasswordPage'))
 
 // App shell + feature pages
 const HomeLayout = lazy(() => import('../../features/home/pages/HomePage'))
@@ -50,6 +51,7 @@ const CoachHomePage = lazy(
 )
 const OrganizationProfilePage = lazy(() => import('../../features/settings/pages/OrganizationProfile'))
 const ManageUsersPage = lazy(() => import('../../features/settings/pages/ManageUsersPage'))
+const EditUserPage = lazy(() => import('../../features/settings/pages/EditUserPage'))
 const AdminPanel = lazy(() => import('../../features/settings/pages/AdminPanel'))
 const SkillListPage = lazy(() => import('../../features/skills/pages/SkillListPage'))
 const NewSkillPage = lazy(() => import('../../features/skills/pages/NewSkillPage'))
@@ -116,6 +118,7 @@ export default function AppRoutes() {
         <Route path={PATHS.signIn} element={<Login />} />
         <Route path={PATHS.signUp} element={<SignUp />} />
         <Route path={PATHS.orgSignUp} element={<OrgSignUp />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* App shell with side nav & app bar */}
         <Route
@@ -132,6 +135,7 @@ export default function AppRoutes() {
           {/* Settings */}
           <Route path="settings/organization" element={<OrganizationProfilePage />} />
           <Route path="settings/users" element={<ManageUsersPage />} />
+          <Route path="settings/users/:id/edit" element={<EditUserPage />} />
           <Route path="settings/admin" element={<AdminPanel />} />
 
           <Route path="admin/athletes/:id" element={<AthleteDetail />} />

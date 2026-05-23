@@ -5,16 +5,19 @@
 import * as React from 'react'
 import {
   Box,
+  Button,
   Stack,
   Typography,
   TextField,
   InputAdornment,
 } from '@mui/material'
+import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
 import {
   DataGrid,
   GridColDef,
 } from '@mui/x-data-grid'
+import { useNavigate } from 'react-router-dom'
 import {
   listUsers,
   type UserListItem,
@@ -30,6 +33,7 @@ const toDisplayValue = (value: string | number | null | undefined) =>
   value === null || value === undefined || value === '' ? '-' : String(value)
 
 export default function ManageUsersPage() {
+  const navigate = useNavigate()
   const { profile, loading: authLoading } = useAuth()
   const [searchText, setSearchText] = React.useState('')
   const [rows, setRows] = React.useState<UserRow[]>([])
@@ -98,32 +102,55 @@ export default function ManageUsersPage() {
         headerName: 'Name',
         flex: 1.4,
         minWidth: 200,
-        valueGetter: (p) => userLabel(p.row),
+        valueGetter: (_value, row) => userLabel(row),
       },
       {
         field: 'role',
         headerName: 'Role',
         width: 120,
-        valueFormatter: (p) => {
-          const value = String(p.value ?? '').trim()
-          return value ? value.replace(/^./, (c) => c.toUpperCase()) : '-'
+        valueFormatter: (value) => {
+          const formattedValue = String(value ?? '').trim()
+          return formattedValue
+            ? formattedValue.replace(/^./, (c) => c.toUpperCase())
+            : '-'
         },
       },
       {
         field: 'phone',
         headerName: 'Phone',
         width: 140,
-        valueFormatter: (p) => toDisplayValue(p.value as string | null),
+        valueFormatter: (value) => toDisplayValue(value as string | null),
       },
       {
         field: 'graduation_year',
         headerName: 'Grad Year',
         width: 110,
-        valueFormatter: (p) => toDisplayValue(p.value as number | null),
+        valueFormatter: (value) => toDisplayValue(value as number | null),
       },
       { field: 'user_id', headerName: 'User ID', flex: 1.2, minWidth: 220 },
+      {
+        field: 'actions',
+        headerName: '',
+        width: 110,
+        sortable: false,
+        filterable: false,
+        renderCell: (params) => (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => {
+              navigate(`/settings/users/${params.row.user_id}/edit`, {
+                state: { user: params.row },
+              })
+            }}
+          >
+            Edit
+          </Button>
+        ),
+      },
     ],
-    [],
+    [navigate],
   )
 
   return (

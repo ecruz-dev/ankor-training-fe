@@ -872,17 +872,6 @@ export default function HomeLayout() {
             onClick={!isMdUp ? toggleMobile : undefined}
           />
         )}
-        {/* ✅ NEW: Athletes Evaluation Report */}
-        {canAccess('reports.athletes-evaluation') && (
-          <NavItem
-            to="/reports/athletes-evaluations"
-            icon={<InsightsIcon />}
-            label="Athletes Evaluation Report"
-            selected={isActive('/reports/athletes-evaluations')}
-            onClick={!isMdUp ? toggleMobile : undefined}
-          />
-        )}
-
         {canAccess('practice-plans') && (
           <NavItem
             to="/practice-plans"

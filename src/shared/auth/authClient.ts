@@ -112,6 +112,22 @@ export async function loginWithEmailPassword(
   return normalized
 }
 
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const e = (email ?? '').trim()
+
+  if (!e || !/\S+@\S+\.\S+/.test(e)) {
+    throw new Error('Please enter a valid email address.')
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(e, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+
+  if (error) {
+    throw new Error(error.message || 'Unable to send password reset email.')
+  }
+}
+
 export async function refreshAuthSession(
   _current?: AuthSession,
 ): Promise<AuthSession> {
