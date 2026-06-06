@@ -74,6 +74,10 @@ export type UpdateGuardianResponse =
   | { ok: true; guardian?: GuardianListItem; data?: GuardianListItem }
   | { ok: false; error: string };
 
+export type DeleteGuardianResponse =
+  | { ok: true; data?: unknown; guardian?: GuardianListItem }
+  | { ok: false; error: string };
+
 export type ListGuardiansParams = {
   orgId: string;
   name?: string;
@@ -474,4 +478,41 @@ export async function updateGuardian(
   }
 
   return normalizeGuardian(raw);
+}
+
+/**
+ * DELETE /functions/v1/api/guardians/:id?org_id=...
+ */
+export async function deleteGuardian(
+  guardianId: string,
+  options: { orgId: string; baseUrl?: string },
+): Promise<void> {
+  if (!guardianId?.trim()) {
+    throw new Error("guardianId is required.");
+  }
+  if (!options.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+  const qs = new URLSearchParams({ org_id: options.orgId.trim() });
+  const url = `${baseUrl}/functions/v1/api/guardians/${encodeURIComponent(guardianId.trim())}?${qs.toString()}`;
+
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    orgId: options.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | DeleteGuardianResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to delete parent.");
+  }
 }

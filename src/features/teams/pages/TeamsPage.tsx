@@ -14,10 +14,11 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
-import { getAllTeams, type Team } from "../services/teamsService";
+import { deleteTeam, getAllTeams, type Team } from "../services/teamsService";
 import { SPORT_LOOKUP } from "../constants";
 
 const formatDateTime = (value?: string | null) => {
@@ -47,6 +48,7 @@ export default function TeamsPage() {
   const [rows, setRows] = React.useState<Team[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const handle = setTimeout(() => {
@@ -122,6 +124,28 @@ export default function TeamsPage() {
 
   const headerLabel =
     isLoading && displayRows.length === 0 ? "Loading teams..." : countLabel;
+
+  const handleDelete = async (team: Team) => {
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) {
+      setLoadError("Missing org_id for this account.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete team "${team.name || team.id}"?`);
+    if (!confirmed) return;
+
+    setDeletingId(team.id);
+    setLoadError(null);
+    try {
+      await deleteTeam(team.id, { orgId: resolvedOrgId });
+      setRows((current) => current.filter((item) => item.id !== team.id));
+    } catch (err: any) {
+      setLoadError(err?.message || "Failed to delete team.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -281,6 +305,19 @@ export default function TeamsPage() {
                           }}
                         >
                           Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          disabled={deletingId === team.id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleDelete(team);
+                          }}
+                        >
+                          Delete
                         </Button>
                       </Stack>
                     </ListItemButton>

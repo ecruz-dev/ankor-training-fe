@@ -58,6 +58,10 @@ export type UpdateCoachResponse =
   | { ok: true; coach?: CoachListItem; data?: CoachListItem }
   | { ok: false; error: string };
 
+export type DeleteCoachResponse =
+  | { ok: true; data?: unknown; coach?: CoachListItem }
+  | { ok: false; error: string };
+
 export type ListCoachesParams = {
   orgId: string;
   name?: string;
@@ -406,4 +410,41 @@ export async function updateCoach(
   }
 
   return normalizeCoach(raw);
+}
+
+/**
+ * DELETE /functions/v1/api/coaches/:coachId?org_id=...
+ */
+export async function deleteCoach(
+  coachId: string,
+  options: { orgId: string; baseUrl?: string },
+): Promise<void> {
+  if (!coachId?.trim()) {
+    throw new Error("coachId is required.");
+  }
+  if (!options.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+  const qs = new URLSearchParams({ org_id: options.orgId.trim() });
+  const url = `${baseUrl}/functions/v1/api/coaches/${encodeURIComponent(coachId.trim())}?${qs.toString()}`;
+
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    orgId: options.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | DeleteCoachResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to delete coach.");
+  }
 }

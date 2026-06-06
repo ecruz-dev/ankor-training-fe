@@ -22,6 +22,7 @@ import {
   toAthleteFormState,
   type AthleteFormState,
 } from "../utils/athleteForm";
+import { relationshipOptions } from "../utils/relationshipOptions";
 import { validateAthleteForm } from "../utils/validation";
 import { listPositions, type Position } from "../services/positionsService";
 
@@ -181,6 +182,17 @@ export default function EditAthletePage() {
   const positionOptions = React.useMemo(() => {
     return [...positions].sort((a, b) => a.name.localeCompare(b.name));
   }, [positions]);
+
+  const relationshipMenuOptions = React.useMemo(() => {
+    const trimmedRelationship = relationship.trim();
+    if (
+      !trimmedRelationship ||
+      relationshipOptions.includes(trimmedRelationship)
+    ) {
+      return relationshipOptions;
+    }
+    return [trimmedRelationship, ...relationshipOptions];
+  }, [relationship]);
 
   const positionHelperText = positionsError
     ? positionsError
@@ -356,13 +368,21 @@ export default function EditAthletePage() {
             fullWidth
           />
           <TextField
+            select
             label="Relationship"
             value={relationship}
             onChange={(event) => setRelationship(event.target.value)}
             error={Boolean(errors.relationship)}
             helperText={errors.relationship || "Optional"}
             fullWidth
-          />
+          >
+            <MenuItem value="">No relationship</MenuItem>
+            {relationshipMenuOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </TextField>
         </AthleteFormFields>
       </Stack>
 

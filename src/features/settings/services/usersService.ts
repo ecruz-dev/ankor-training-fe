@@ -55,6 +55,10 @@ export type ManagedUserResponse =
   | { ok: true; data: ManagedUser }
   | { ok: false; error: string };
 
+export type DeleteManagedUserResponse =
+  | { ok: true; data?: unknown }
+  | { ok: false; error: string };
+
 export type AuthLoginUser = {
   id: string;
   email: string;
@@ -293,6 +297,45 @@ export async function updateManagedUser(
   }
 
   return normalizeManagedUser(data.data);
+}
+
+/**
+ * DELETE /functions/v1/api/users/:id?org_id=...[&hard_delete=true]
+ */
+export async function deleteManagedUser(
+  params: { userId: string; orgId: string; hardDelete?: boolean },
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<void> {
+  if (!params.userId?.trim()) {
+    throw new Error("userId is required.");
+  }
+  if (!params.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const qs = new URLSearchParams({ org_id: params.orgId.trim() });
+  if (params.hardDelete) {
+    qs.set("hard_delete", "true");
+  }
+
+  const url = `${baseUrl}/functions/v1/api/users/${encodeURIComponent(params.userId.trim())}?${qs.toString()}`;
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    orgId: params.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | DeleteManagedUserResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to delete user.");
+  }
 }
 
 /**

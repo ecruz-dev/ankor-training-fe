@@ -274,3 +274,7 @@ export type EvaluationMatrixUpdatePayload = {
 export type SubmitEvaluationResponse =
   | { ok: true; evaluation?: unknown; data?: unknown; message?: string }
   | { ok: false; error: string }
+
+export type DeleteEvaluationResponse =
+  | { ok: true; data?: unknown; evaluation?: unknown; message?: string }
+  | { ok: false; error: string }

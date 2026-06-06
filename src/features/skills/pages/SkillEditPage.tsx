@@ -22,6 +22,7 @@ import {
   getSkillById,
   getSkillDrillMap,
   updateSkill,
+  uploadSkillMediaBatch,
   type Skill,
   type SkillDrillMapItem,
 } from "../services/skillsService";
@@ -213,6 +214,7 @@ export default function SkillEditPage() {
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = React.useState<string | null>(null);
   const [recordedUrl, setRecordedUrl] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
   const recordedChunksRef = React.useRef<Blob[]>([]);
@@ -380,6 +382,16 @@ export default function SkillEditPage() {
     () => ensureOption(SKILL_STATUS_OPTIONS, form.status),
     [form.status],
   );
+  const hasSkillVideo = React.useMemo(
+    () =>
+      Boolean(uploadedUrl) ||
+      Boolean(
+        skillItem?.media?.some(
+          (media) => media.type?.toLowerCase() === "video" && media.url,
+        ),
+      ),
+    [skillItem?.media, uploadedUrl],
+  );
 
   const handleChange = (field: keyof SkillFormState) => (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -482,6 +494,10 @@ export default function SkillEditPage() {
       setUploadError("Missing org_id. Please sign in again.");
       return;
     }
+    if (hasSkillVideo) {
+      setUploadError("Only one video is allowed for each skill.");
+      return;
+    }
 
     setUploading(true);
     setUploadError(null);
@@ -564,8 +580,71 @@ export default function SkillEditPage() {
     }
   };
 
+  const handleVideoFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+
+    if (!skillId) {
+      setUploadError("Missing skill id in route.");
+      return;
+    }
+    if (!orgId) {
+      setUploadError("Missing org_id. Please sign in again.");
+      return;
+    }
+    if (hasSkillVideo) {
+      setUploadError("Only one video is allowed for each skill.");
+      return;
+    }
+    if (file.type && file.type !== "video/mp4") {
+      setUploadError("Please choose an MP4 video file.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadedUrl(null);
+
+    try {
+      const result = await uploadSkillMediaBatch({
+        org_id: orgId,
+        skill_id: skillId,
+        file,
+        title: form.title.trim() || "Skill video",
+      });
+
+      const uploadedItem = result.items.find(
+        (item) => item.status === "uploaded",
+      );
+      const publicUrl =
+        uploadedItem?.media?.url || uploadedItem?.upload?.public_url || null;
+
+      if (!uploadedItem || !publicUrl) {
+        const reason =
+          result.items.find((item) => item.reason)?.reason ||
+          "Upload completed but no video URL was returned.";
+        throw new Error(reason);
+      }
+
+      setUploadedUrl(publicUrl);
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "Failed to upload video.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const startRecording = async () => {
     if (recording || uploading) return;
+    if (hasSkillVideo) {
+      setRecordingError("Only one video is allowed for each skill.");
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       setRecordingError("Recording is not supported in this browser.");
       return;
@@ -633,7 +712,7 @@ export default function SkillEditPage() {
     setRecording(false);
   };
 
-  const canRecord = Boolean(skillId) && Boolean(orgId);
+  const canRecord = Boolean(skillId) && Boolean(orgId) && !hasSkillVideo;
 
   return (
     <Box sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
@@ -695,6 +774,7 @@ export default function SkillEditPage() {
           videoExtras={
             <SkillRecordingControls
               canRecord={canRecord}
+              videoLimitReached={hasSkillVideo}
               recording={recording}
               uploading={uploading}
               recordingError={recordingError}
@@ -703,6 +783,9 @@ export default function SkillEditPage() {
               recordedUrl={recordedUrl}
               onStart={startRecording}
               onStop={stopRecording}
+              onUploadFile={() => fileInputRef.current?.click()}
+              onFileChange={handleVideoFileChange}
+              fileInputRef={fileInputRef}
               videoRef={liveVideoRef}
             />
           }

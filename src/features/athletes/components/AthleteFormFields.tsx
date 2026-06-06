@@ -12,6 +12,7 @@ type AthleteFormFieldsProps = {
   passwordLabel?: string;
   passwordRequired?: boolean;
   showUsername?: boolean;
+  showCellNumber?: boolean;
   showConfirmPassword?: boolean;
   confirmPassword?: string;
   onConfirmPasswordChange?: (
@@ -31,6 +32,7 @@ export default function AthleteFormFields({
   passwordLabel = "Password",
   passwordRequired = false,
   showUsername = true,
+  showCellNumber = true,
   showConfirmPassword = false,
   confirmPassword = "",
   onConfirmPasswordChange,
@@ -94,15 +96,17 @@ export default function AthleteFormFields({
               InputProps={fieldInputProps}
             />
           )}
-          <TextField
-            label="Cell number"
-            value={form.cellNumber}
-            onChange={onFieldChange("cellNumber")}
-            error={Boolean(errors.cell_number)}
-            helperText={errors.cell_number}
-            fullWidth
-            InputProps={fieldInputProps}
-          />
+          {showCellNumber && (
+            <TextField
+              label="Cell number"
+              value={form.cellNumber}
+              onChange={onFieldChange("cellNumber")}
+              error={Boolean(errors.cell_number)}
+              helperText={errors.cell_number}
+              fullWidth
+              InputProps={fieldInputProps}
+            />
+          )}
           <TextField
             label="Graduation year"
             type="number"

@@ -14,7 +14,6 @@ import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import AppTheme from '../theme/AppTheme';
 import ColorModeSelect from '../theme/ColorModeSelect';
-import {  SitemarkIcon } from '../components/CustomIcons';
 import MenuItem from '@mui/material/MenuItem';
 import { signUp, makeAthleteInput, makeCoachInput } from '../services/signupService';
 import { useNavigate } from 'react-router-dom'; 
@@ -118,6 +117,8 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
   const [firstNameErrorMessage, setFirstNameErrorMessage] = React.useState('');
   const [lastNameError, setLasNameError] = React.useState(false);
   const [lastNameErrorMessage, setLastNameErrorMessage] = React.useState('');
+  const [cellNumberError, setCellNumberError] = React.useState(false);
+  const [cellNumberErrorMessage, setCellNumberErrorMessage] = React.useState('');
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState('');
   const [positions, setPositions] = React.useState<Position[]>([]);
@@ -201,6 +202,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
     const password = document.getElementById('password') as HTMLInputElement | null;
     const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement | null;
     const typecode = document.getElementById('typecode') as HTMLInputElement | null;
+    const cellNumber = document.getElementById('cellNumber') as HTMLInputElement | null;
 
     let isValid = true;
 
@@ -244,6 +246,15 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
       setNameErrorMessage('');
     }
 
+    if (!cellNumber?.value.trim()) {
+      setCellNumberError(true);
+      setCellNumberErrorMessage('Cell number is required.');
+      isValid = false;
+    } else {
+      setCellNumberError(false);
+      setCellNumberErrorMessage('');
+    }
+
     if (role === 'athlete') {
       if (!selectedPositionId.trim()) {
         setPositionError(true);
@@ -275,8 +286,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
         const confirmPassword = String(form.get('confirmPassword') || '');
         const firstName = String(form.get('firstName') || '').trim();
         const lastName = String(form.get('lastName') || '').trim();
-        const cellNumberRaw = form.get('cellNumber');
-        const cellNumber = (cellNumberRaw ? String(cellNumberRaw) : '').trim() || undefined;
+        const cellNumber = String(form.get('cellNumber') || '').trim();
 
         if (confirmPassword !== password) {
           setConfirmPasswordError(true);
@@ -343,7 +353,6 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <SignUpContainer direction="column" justifyContent="space-between">
         <Card variant="outlined">
-          <SitemarkIcon />
           <Typography
             component="h1"
             variant="h4"
@@ -430,7 +439,6 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
                 required
                 fullWidth
                 name="confirmPassword"
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢"
                 type="password"
                 id="confirmPassword"
                 autoComplete="new-password"
@@ -519,8 +527,12 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
                 autoComplete="tel"
                 name="cellNumber"
                 id="cellNumber"
+                required
                 fullWidth
                 placeholder="555-222-3333"
+                error={cellNumberError}
+                helperText={cellNumberErrorMessage}
+                color={cellNumberError ? 'error' : 'primary'}
               />
             </FormControl>
 

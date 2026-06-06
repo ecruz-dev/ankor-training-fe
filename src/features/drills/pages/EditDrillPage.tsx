@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
+import { supabase } from "../../../lib/supabaseClient";
 import {
   createDrillMediaUploadUrl,
   createDrillMedia,
@@ -65,6 +66,8 @@ const mergeTagOptions = (primary: DrillTag[], secondary: DrillTag[]) => {
 
 const toStringValue = (value: number | null | undefined) =>
   Number.isFinite(value) ? String(value) : "";
+
+const MAX_VIDEO_UPLOAD_BYTES = 200 * 1024 * 1024;
 
 const pickPrimaryVideoUrl = (media: DrillMedia[] | null | undefined) => {
   if (!Array.isArray(media)) return "";
@@ -132,26 +135,53 @@ const pickFileExtension = (contentType: string) => {
   return "webm";
 };
 
-const pickUploadUrl = (data: unknown) => {
+const pickUploadBucket = (data: unknown) => {
   if (!data || typeof data !== "object") return "";
   const typed = data as any;
   if (typed.upload && typeof typed.upload === "object") {
     const inner = typed.upload as any;
-    if (typeof inner.signed_url === "string") return inner.signed_url;
-    if (typeof inner.signedUrl === "string") return inner.signedUrl;
-    if (typeof inner.upload_url === "string") return inner.upload_url;
-    if (typeof inner.uploadUrl === "string") return inner.uploadUrl;
+    if (typeof inner.bucket === "string") return inner.bucket;
   }
-  if (typeof typed.upload_url === "string") return typed.upload_url;
-  if (typeof typed.uploadUrl === "string") return typed.uploadUrl;
-  if (typeof typed.signed_url === "string") return typed.signed_url;
-  if (typeof typed.signedUrl === "string") return typed.signedUrl;
+  if (typeof typed.bucket === "string") return typed.bucket;
   if (typed.data && typeof typed.data === "object") {
     const inner = typed.data as any;
-    if (typeof inner.upload_url === "string") return inner.upload_url;
-    if (typeof inner.uploadUrl === "string") return inner.uploadUrl;
-    if (typeof inner.signed_url === "string") return inner.signed_url;
-    if (typeof inner.signedUrl === "string") return inner.signedUrl;
+    if (typeof inner.bucket === "string") return inner.bucket;
+  }
+  return "";
+};
+
+const pickUploadPath = (data: unknown) => {
+  if (!data || typeof data !== "object") return "";
+  const typed = data as any;
+  if (typed.upload && typeof typed.upload === "object") {
+    const inner = typed.upload as any;
+    if (typeof inner.path === "string") return inner.path;
+    if (typeof inner.object_path === "string") return inner.object_path;
+    if (typeof inner.objectPath === "string") return inner.objectPath;
+  }
+  if (typeof typed.path === "string") return typed.path;
+  if (typeof typed.object_path === "string") return typed.object_path;
+  if (typeof typed.objectPath === "string") return typed.objectPath;
+  if (typed.data && typeof typed.data === "object") {
+    const inner = typed.data as any;
+    if (typeof inner.path === "string") return inner.path;
+    if (typeof inner.object_path === "string") return inner.object_path;
+    if (typeof inner.objectPath === "string") return inner.objectPath;
+  }
+  return "";
+};
+
+const pickUploadToken = (data: unknown) => {
+  if (!data || typeof data !== "object") return "";
+  const typed = data as any;
+  if (typed.upload && typeof typed.upload === "object") {
+    const inner = typed.upload as any;
+    if (typeof inner.token === "string") return inner.token;
+  }
+  if (typeof typed.token === "string") return typed.token;
+  if (typed.data && typeof typed.data === "object") {
+    const inner = typed.data as any;
+    if (typeof inner.token === "string") return inner.token;
   }
   return "";
 };
@@ -203,6 +233,7 @@ export default function EditDrillPage() {
   const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = React.useState<string | null>(null);
   const [recordedUrl, setRecordedUrl] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
   const recordedChunksRef = React.useRef<Blob[]>([]);
@@ -439,7 +470,40 @@ export default function EditDrillPage() {
     }
   };
 
-  const uploadRecordedBlob = async (blob: Blob) => {
+  const updateLocalVideo = (publicUrl: string, title: string | null) => {
+    setUploadedUrl(publicUrl);
+    setForm((prev) => ({ ...prev, youtubeUrl: publicUrl }));
+    setDrillItem((prev) =>
+      prev
+        ? {
+            ...prev,
+            media: [
+              {
+                type: "video",
+                url: publicUrl,
+                title,
+                description: null,
+                thumbnail_url: null,
+                position: 1,
+              },
+              ...prev.media.filter((item) => item.type !== "video"),
+            ],
+          }
+        : prev,
+    );
+  };
+
+  const uploadVideoToStorage = async ({
+    video,
+    fileName,
+    contentType,
+    title,
+  }: {
+    video: Blob;
+    fileName: string;
+    contentType: string;
+    title: string;
+  }) => {
     if (!drillId) {
       setUploadError("Missing drill id in route.");
       return;
@@ -448,54 +512,41 @@ export default function EditDrillPage() {
       setUploadError("Missing org_id. Please sign in again.");
       return;
     }
+    if (video.size > MAX_VIDEO_UPLOAD_BYTES) {
+      setUploadError("Video must be 200 MB or smaller.");
+      return;
+    }
 
     setUploading(true);
     setUploadError(null);
     setUploadedUrl(null);
 
-    const contentType = blob.type || "video/webm";
-    const fileName = `drill-${drillId}-${Date.now()}.${pickFileExtension(
-      contentType,
-    )}`;
-
     try {
       const upload = await createDrillMediaUploadUrl({
         org_id: orgId,
         drill_id: drillId,
-        media_type: "video",
         file_name: fileName,
         content_type: contentType,
-        content_length: blob.size,
+        type: "video",
+        title,
+        content_length: video.size,
       });
 
-      const uploadUrl = pickUploadUrl(upload);
-      if (!uploadUrl) {
-        throw new Error("Upload URL missing from response.");
+      const bucket = pickUploadBucket(upload);
+      const path = pickUploadPath(upload);
+      const token = pickUploadToken(upload);
+      if (!bucket || !path || !token) {
+        throw new Error("Signed upload details missing from response.");
       }
 
-      const fields = (upload as any)?.fields as Record<string, string> | undefined;
-      let uploadRes: Response;
-
-      if (fields && Object.keys(fields).length > 0) {
-        const formData = new FormData();
-        Object.entries(fields).forEach(([key, value]) => {
-          formData.append(key, value);
+      const { error: storageError } = await supabase.storage
+        .from(bucket)
+        .uploadToSignedUrl(path, token, video, {
+          contentType,
+          upsert: true,
         });
-        formData.append("file", blob, fileName);
-        uploadRes = await fetch(uploadUrl, {
-          method: "POST",
-          body: formData,
-        });
-      } else {
-        uploadRes = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": contentType },
-          body: blob,
-        });
-      }
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload video.");
+      if (storageError) {
+        throw new Error(storageError.message || "Failed to upload video.");
       }
 
       const publicUrl = pickPublicUrl(upload);
@@ -508,10 +559,10 @@ export default function EditDrillPage() {
         org_id: orgId,
         type: "video",
         url: publicUrl,
-        title: form.name.trim() || null,
+        title: title || null,
       });
 
-      setUploadedUrl(publicUrl);
+      updateLocalVideo(publicUrl, title || null);
     } catch (err) {
       setUploadError(
         err instanceof Error ? err.message : "Failed to upload video.",
@@ -519,6 +570,45 @@ export default function EditDrillPage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const uploadRecordedBlob = async (blob: Blob) => {
+    const contentType = blob.type || "video/webm";
+    await uploadVideoToStorage({
+      video: blob,
+      fileName: `drill-${drillId}-${Date.now()}.${pickFileExtension(
+        contentType,
+      )}`,
+      contentType,
+      title: form.name.trim() || "Drill video",
+    });
+  };
+
+  const handleVideoFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+
+    if (!drillId) {
+      setUploadError("Missing drill id in route.");
+      return;
+    }
+    if (!orgId) {
+      setUploadError("Missing org_id. Please sign in again.");
+      return;
+    }
+    if (file.type && file.type !== "video/mp4") {
+      setUploadError("Please choose an MP4 video file.");
+      return;
+    }
+    await uploadVideoToStorage({
+      video: file,
+      fileName: file.name,
+      contentType: file.type || "video/mp4",
+      title: file.name,
+    });
   };
 
   const startRecording = async () => {
@@ -667,6 +757,9 @@ export default function EditDrillPage() {
               recordedUrl={recordedUrl}
               onStart={startRecording}
               onStop={stopRecording}
+              onUploadFile={() => fileInputRef.current?.click()}
+              onFileChange={handleVideoFileChange}
+              fileInputRef={fileInputRef}
               videoRef={liveVideoRef}
             />
           }

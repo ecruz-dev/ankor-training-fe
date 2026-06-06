@@ -3,6 +3,7 @@ import { Box, Button, Stack, Typography } from "@mui/material";
 
 type SkillRecordingControlsProps = {
   canRecord: boolean;
+  videoLimitReached: boolean;
   recording: boolean;
   uploading: boolean;
   recordingError: string | null;
@@ -11,11 +12,15 @@ type SkillRecordingControlsProps = {
   recordedUrl: string | null;
   onStart: () => void;
   onStop: () => void;
+  onUploadFile: () => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   videoRef: React.RefObject<HTMLVideoElement>;
 };
 
 export default function SkillRecordingControls({
   canRecord,
+  videoLimitReached,
   recording,
   uploading,
   recordingError,
@@ -24,6 +29,9 @@ export default function SkillRecordingControls({
   recordedUrl,
   onStart,
   onStop,
+  onUploadFile,
+  onFileChange,
+  fileInputRef,
   videoRef,
 }: SkillRecordingControlsProps) {
   return (
@@ -42,6 +50,21 @@ export default function SkillRecordingControls({
           {recording ? "Stop & upload" : "Record video"}
         </Button>
 
+        <Button
+          variant="outlined"
+          onClick={onUploadFile}
+          disabled={!canRecord || uploading || recording}
+        >
+          Upload video
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/mp4,.mp4"
+          hidden
+          onChange={onFileChange}
+        />
+
         {uploading && (
           <Typography variant="body2" color="text.secondary">
             Uploading video...
@@ -50,7 +73,9 @@ export default function SkillRecordingControls({
 
         {!canRecord && (
           <Typography variant="body2" color="text.secondary">
-            Recording requires a skill id and org id.
+            {videoLimitReached
+              ? "This skill already has a video."
+              : "Video upload requires a skill id and org id."}
           </Typography>
         )}
       </Stack>

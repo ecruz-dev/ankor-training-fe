@@ -40,6 +40,10 @@ export type CreateJoinCodeResponse =
   | { ok: true; join_code?: JoinCode; data?: JoinCode }
   | { ok: false; error: string };
 
+export type DeleteJoinCodeResponse =
+  | { ok: true; data?: unknown; join_code?: JoinCode }
+  | { ok: false; error: string };
+
 export type ListJoinCodesParams = {
   orgId?: string;
 };
@@ -214,4 +218,41 @@ export async function createJoinCode(
   }
 
   return joinCode;
+}
+
+/**
+ * DELETE /functions/v1/api/join-codes/:code?org_id=...
+ */
+export async function deleteJoinCode(
+  code: string,
+  options: { orgId: string; baseUrl?: string },
+): Promise<void> {
+  if (!code?.trim()) {
+    throw new Error("code is required.");
+  }
+  if (!options.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+  const qs = new URLSearchParams({ org_id: options.orgId.trim() });
+  const url = `${baseUrl}/functions/v1/api/join-codes/${encodeURIComponent(code.trim())}?${qs.toString()}`;
+
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    orgId: options.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | DeleteJoinCodeResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to delete join code.");
+  }
 }

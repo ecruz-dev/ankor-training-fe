@@ -16,6 +16,7 @@ import EvaluationsListTable from '../components/list/EvaluationsListTable'
 import { useEvaluationsList } from '../hooks/useEvaluationsList'
 import { filterEvaluationRows } from '../utils/filterEvaluationRows'
 import { useAuth } from '../../../app/providers/AuthProvider'
+import { deleteEvaluation, type EvaluationListRow } from '../api/evaluationsApi'
 
 export default function EvaluationsListPage() {
   const navigate = useNavigate()
@@ -25,11 +26,14 @@ export default function EvaluationsListPage() {
   const orgId = profile?.default_org_id?.trim() || null
   const { rows, loading, error, reload } = useEvaluationsList(orgId)
   const [search, setSearch] = React.useState('')
+  const [deletedIds, setDeletedIds] = React.useState<Set<string>>(() => new Set())
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  const [deleteError, setDeleteError] = React.useState<string | null>(null)
   const isLoading = loading || authLoading
 
   const filteredRows = React.useMemo(
-    () => filterEvaluationRows(rows, search),
-    [rows, search],
+    () => filterEvaluationRows(rows, search).filter((row) => !deletedIds.has(row.id)),
+    [deletedIds, rows, search],
   )
 
   const handleCreate = React.useCallback(() => {
@@ -50,13 +54,48 @@ export default function EvaluationsListPage() {
     [navigate],
   )
 
+  const handleDelete = React.useCallback(
+    async (row: EvaluationListRow) => {
+      const resolvedOrgId = orgId?.trim() || ''
+      if (!resolvedOrgId) {
+        setDeleteError('Missing org_id for this account.')
+        return
+      }
+
+      const label = row.team_name || row.scorecard_template_name || row.id
+      const confirmed = window.confirm(`Delete evaluation "${label}"?`)
+      if (!confirmed) return
+
+      setDeletingId(row.id)
+      setDeleteError(null)
+      try {
+        await deleteEvaluation(row.id, { orgId: resolvedOrgId })
+        setDeletedIds((current) => {
+          const next = new Set(current)
+          next.add(row.id)
+          return next
+        })
+      } catch (err) {
+        setDeleteError(err instanceof Error ? err.message : 'Failed to delete evaluation.')
+      } finally {
+        setDeletingId(null)
+      }
+    },
+    [orgId],
+  )
+
+  React.useEffect(() => {
+    setDeletedIds(new Set())
+    setDeleteError(null)
+  }, [orgId])
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={3}>
         <EvaluationsListHeader isMobile={isMobile} onCreate={handleCreate} />
         <EvaluationsListFilters search={search} onSearchChange={setSearch} />
 
-        {error ? (
+        {error || deleteError ? (
           <Paper sx={{ p: 2 }}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -65,11 +104,13 @@ export default function EvaluationsListPage() {
               justifyContent="space-between"
             >
               <Typography variant="body2" color="error">
-                {error}
+                {error || deleteError}
               </Typography>
-              <Button size="small" variant="outlined" onClick={reload}>
-                Retry
-              </Button>
+              {error ? (
+                <Button size="small" variant="outlined" onClick={reload}>
+                  Retry
+                </Button>
+              ) : null}
             </Stack>
           </Paper>
         ) : null}
@@ -80,6 +121,8 @@ export default function EvaluationsListPage() {
             loading={isLoading}
             onView={handleView}
             onEdit={handleEdit}
+            onDelete={handleDelete}
+            deletingId={deletingId}
           />
         ) : (
           <EvaluationsListTable
@@ -87,6 +130,8 @@ export default function EvaluationsListPage() {
             loading={isLoading}
             onView={handleView}
             onEdit={handleEdit}
+            onDelete={handleDelete}
+            deletingId={deletingId}
           />
         )}
       </Stack>

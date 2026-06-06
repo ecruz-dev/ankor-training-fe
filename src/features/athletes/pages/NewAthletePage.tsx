@@ -8,6 +8,7 @@ import {
   createInitialAthleteForm,
   type AthleteFormState,
 } from "../utils/athleteForm";
+import { relationshipOptions } from "../utils/relationshipOptions";
 import { validateAthleteForm } from "../utils/validation";
 import { getAllTeams, type Team } from "../../teams/services/teamsService";
 import { listPositions, type Position } from "../services/positionsService";
@@ -189,7 +190,6 @@ export default function NewAthletePage() {
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
         full_name: [form.firstName, form.lastName].filter(Boolean).join(" ").trim(),
-        cell_number: form.cellNumber.trim() || null,
         username: form.username.trim(),
         graduation_year: toOptionalNumber(form.graduationYear),
         team_id: selectedTeamId.trim() || null,
@@ -261,6 +261,7 @@ export default function NewAthletePage() {
           showPassword
           passwordLabel="Password (required)"
           passwordRequired
+          showCellNumber={false}
           showConfirmPassword
           confirmPassword={confirmPassword}
           onConfirmPasswordChange={(event) => setConfirmPassword(event.target.value)}
@@ -357,13 +358,21 @@ export default function NewAthletePage() {
             fullWidth
           />
           <TextField
+            select
             label="Relationship"
             value={relationship}
             onChange={(event) => setRelationship(event.target.value)}
             error={Boolean(errors.relationship)}
             helperText={errors.relationship || "Optional"}
             fullWidth
-          />
+          >
+            <MenuItem value="">No relationship</MenuItem>
+            {relationshipOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </TextField>
         </AthleteFormFields>
       </Stack>
     </Box>

@@ -15,10 +15,12 @@ import {
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import {
+  deleteScorecardTemplate,
   listScorecardTemplatesPage,
   type ScorecardTemplateRow,
 } from "../services/scorecardService";
@@ -52,6 +54,7 @@ export default function ScorecardListPage() {
   const [totalCount, setTotalCount] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const handle = setTimeout(() => {
@@ -128,6 +131,31 @@ export default function ScorecardListPage() {
   const emptyMessage = searchText.trim()
     ? `No scorecards match "${searchText.trim()}".`
     : "No scorecard templates found.";
+
+  const handleDelete = async (template: ScorecardTemplateRow) => {
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) {
+      setLoadError("Missing org_id for this account.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete scorecard template "${template.name || template.id}"?`);
+    if (!confirmed) return;
+
+    setDeletingId(template.id);
+    setLoadError(null);
+    try {
+      await deleteScorecardTemplate(template.id, { orgId: resolvedOrgId });
+      setRows((current) => current.filter((item) => item.id !== template.id));
+      setTotalCount((current) =>
+        typeof current === "number" ? Math.max(0, current - 1) : current,
+      );
+    } catch (err: any) {
+      setLoadError(err?.message || "Failed to delete scorecard template.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <Box sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
@@ -272,6 +300,19 @@ export default function ScorecardListPage() {
                             }}
                           >
                             Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            disabled={deletingId === row.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDelete(row);
+                            }}
+                          >
+                            Delete
                           </Button>
                         </Stack>
                       </ListItemButton>

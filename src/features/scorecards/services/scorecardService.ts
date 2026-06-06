@@ -132,6 +132,10 @@ export type UpdateScorecardTemplateResponse =
     }
   | { ok: false; error: string };
 
+export type DeleteScorecardTemplateResponse =
+  | { ok: true; data?: unknown }
+  | { ok: false; error: string };
+
 function normalizeTemplate(raw: any): ScorecardTemplateRow {
   const isActiveRaw = raw?.is_active ?? raw?.isActive ?? raw?.active;
   const is_active =
@@ -750,4 +754,41 @@ export async function updateScorecardTemplate(
   }
 
   return data;
+}
+
+/**
+ * DELETE /functions/v1/api/scorecard/:id?org_id=...
+ */
+export async function deleteScorecardTemplate(
+  templateId: string,
+  options: { orgId: string; baseUrl?: string },
+): Promise<void> {
+  if (!templateId?.trim()) {
+    throw new Error("templateId is required.");
+  }
+  if (!options.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+  const qs = new URLSearchParams({ org_id: options.orgId.trim() });
+  const url = `${baseUrl}/functions/v1/api/scorecard/${encodeURIComponent(templateId.trim())}?${qs.toString()}`;
+
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    orgId: options.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | DeleteScorecardTemplateResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to delete scorecard template.");
+  }
 }

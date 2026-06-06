@@ -38,6 +38,7 @@ import ApartmentIcon from '@mui/icons-material/Apartment'
 import GroupIcon from '@mui/icons-material/Group'
 import BuildIcon from '@mui/icons-material/Build'
 import EventNoteIcon from '@mui/icons-material/EventNote'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 
 // 🔴 REMOVED: Lacrosse icon
 // import SportsIcon from '@mui/icons-material/Sports'
@@ -53,7 +54,6 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import InsightsIcon from '@mui/icons-material/Insights' // ✅ NEW: icon for report
 import HomeIcon from '@mui/icons-material/Home'
 import { Link as RouterLink, Outlet, useLocation } from 'react-router-dom'
@@ -82,7 +82,6 @@ type MenuKey =
   | 'practice-plans'
 
 const COACH_MENU_KEYS = new Set<MenuKey>([
-  'settings.admin',
   'skills',
   'scorecards',
   'athletes',

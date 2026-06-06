@@ -123,6 +123,33 @@ export type SkillMediaPlayResponse =
     }
   | { ok: false; error: string };
 
+export type SkillMediaBatchUploadItem = {
+  file_field: string;
+  file_name: string;
+  skill_id: string;
+  status: "uploaded" | "skipped" | "failed" | string;
+  reason: string | null;
+  upload?: {
+    bucket: string;
+    object_path: string;
+    signed_url?: string;
+    token?: string;
+    public_url?: string;
+  } | null;
+  media?: SkillMedia | null;
+};
+
+export type SkillMediaBatchUploadResponse =
+  | {
+      ok: true;
+      total: number;
+      uploaded: number;
+      skipped: number;
+      failed: number;
+      items: SkillMediaBatchUploadItem[];
+    }
+  | { ok: false; error: string };
+
 export type SkillDrillMapItem = {
   org_id: string;
   skill_id: string;
@@ -676,6 +703,65 @@ export async function createSkillMedia(
   }
   if (!data) {
     throw new Error("Invalid response from skill media endpoint.");
+  }
+
+  return data;
+}
+
+/**
+ * POST /functions/v1/api/skills/media/batch-upload
+ */
+export async function uploadSkillMediaBatch(
+  input: {
+    org_id: string;
+    skill_id: string;
+    file: File;
+    title?: string | null;
+  },
+  baseUrl = DEFAULT_BASE_URL,
+): Promise<SkillMediaBatchUploadResponse> {
+  if (!input.org_id?.trim()) {
+    throw new Error("org_id is required.");
+  }
+  if (!input.skill_id?.trim()) {
+    throw new Error("skill_id is required.");
+  }
+  if (!input.file) {
+    throw new Error("video file is required.");
+  }
+
+  const formData = new FormData();
+  formData.append("org_id", input.org_id.trim());
+  formData.append(
+    "items",
+    JSON.stringify([
+      {
+        file_field: "video",
+        skill_id: input.skill_id.trim(),
+        title: input.title?.trim() || "Skill video",
+      },
+    ]),
+  );
+  formData.append("video", input.file, input.file.name);
+
+  const url = `${baseUrl}/functions/v1/api/skills/media/batch-upload`;
+
+  const res = await apiFetch(url, {
+    method: "POST",
+    body: formData,
+    orgId: input.org_id,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | SkillMediaBatchUploadResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if (!data?.ok) {
+    throw new Error((data as any)?.error || "Failed to upload skill video.");
   }
 
   return data;

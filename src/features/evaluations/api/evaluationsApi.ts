@@ -16,6 +16,7 @@ import type {
   EvaluationWorkoutProgressRow,
   EvaluationWorkoutDrillLevel,
   EvaluationWorkoutDrillsResponse,
+  DeleteEvaluationResponse,
   EvaluationInput,
   EvaluationListRow,
   EvaluationMatrixUpdatePayload,
@@ -43,6 +44,7 @@ export type {
   EvaluationWorkoutProgressRow,
   EvaluationWorkoutDrillLevel,
   EvaluationWorkoutDrillsResponse,
+  DeleteEvaluationResponse,
   EvaluationInput,
   EvaluationItemInput,
   EvaluationItemRecord,
@@ -363,6 +365,35 @@ export async function submitEvaluation(
   if (!raw || typeof raw !== 'object' || !(raw as any).id) return null
 
   return normalizeEvaluationDetail(raw)
+}
+
+/**
+ * DELETE /functions/v1/api/evaluations/:id?org_id=...
+ */
+export async function deleteEvaluation(
+  evaluationId: string,
+  options: { orgId: string; baseUrl?: string },
+): Promise<void> {
+  if (!evaluationId?.trim()) {
+    throw new Error('evaluationId is required.')
+  }
+  if (!options.orgId?.trim()) {
+    throw new Error('orgId is required.')
+  }
+
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL
+  const qs = new URLSearchParams({ org_id: options.orgId.trim() })
+  const url = `${baseUrl}/functions/v1/api/evaluations/${encodeURIComponent(evaluationId.trim())}?${qs.toString()}`
+
+  const json = await fetchJson<DeleteEvaluationResponse | any>(url, {
+    method: 'DELETE',
+    headers: JSON_HEADERS,
+    orgId: options.orgId,
+  })
+
+  if (json?.ok === false) {
+    throw new Error(json?.error || 'Failed to delete evaluation.')
+  }
 }
 
 /**

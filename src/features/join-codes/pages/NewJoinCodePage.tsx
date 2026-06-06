@@ -44,7 +44,7 @@ export default function NewJoinCodePage() {
   const [teamsLoading, setTeamsLoading] = React.useState(false);
   const [teamsError, setTeamsError] = React.useState<string | null>(null);
   const [teamId, setTeamId] = React.useState("");
-  const [maxUses, setMaxUses] = React.useState("1");
+  const [maxUses, setMaxUses] = React.useState("30");
   const [expiresAt, setExpiresAt] = React.useState(() => {
     const next = new Date();
     next.setDate(next.getDate() + 7);

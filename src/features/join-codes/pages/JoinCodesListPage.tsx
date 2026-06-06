@@ -16,11 +16,12 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../app/providers/AuthProvider";
 import { getAllTeams, type Team } from "../../teams/services/teamsService";
-import { listJoinCodes, type JoinCode } from "../services/joinCodeService";
+import { deleteJoinCode, listJoinCodes, type JoinCode } from "../services/joinCodeService";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "";
@@ -75,6 +76,7 @@ export default function JoinCodesListPage() {
   const [teams, setTeams] = React.useState<Team[]>([]);
   const [teamsLoading, setTeamsLoading] = React.useState(false);
   const [teamsError, setTeamsError] = React.useState<string | null>(null);
+  const [deletingCode, setDeletingCode] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const handle = setTimeout(() => {
@@ -205,6 +207,28 @@ export default function JoinCodesListPage() {
     }
   };
 
+  const handleDelete = async (joinCode: JoinCode) => {
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) {
+      setLoadError("Missing org_id for this account.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete join code "${joinCode.code}"?`);
+    if (!confirmed) return;
+
+    setDeletingCode(joinCode.code);
+    setLoadError(null);
+    try {
+      await deleteJoinCode(joinCode.code, { orgId: resolvedOrgId });
+      setRows((current) => current.filter((item) => item.code !== joinCode.code));
+    } catch (err: any) {
+      setLoadError(err?.message || "Failed to delete join code.");
+    } finally {
+      setDeletingCode(null);
+    }
+  };
+
   return (
     <Box sx={{ width: "100%" }}>
       <Stack
@@ -313,6 +337,16 @@ export default function JoinCodesListPage() {
                               onClick={() => handleCopy(code.code)}
                             >
                               <ContentCopyIcon fontSize="inherit" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete join code">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={deletingCode === code.code}
+                              onClick={() => void handleDelete(code)}
+                            >
+                              <DeleteIcon fontSize="inherit" />
                             </IconButton>
                           </Tooltip>
                         </Stack>

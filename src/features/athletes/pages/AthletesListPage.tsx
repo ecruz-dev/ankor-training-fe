@@ -20,9 +20,11 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 import {
   athleteLabel,
+  deleteAthlete,
   listAthletes,
   type AthleteListItem,
 } from "../services/athleteService";
@@ -59,6 +61,7 @@ export default function AthletesListPage() {
   const [teamsLoading, setTeamsLoading] = React.useState(false);
   const [teamsError, setTeamsError] = React.useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = React.useState("");
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
   const pageSize = 20;
 
@@ -199,6 +202,31 @@ export default function AthletesListPage() {
       setPage(totalPages);
     }
   }, [page, total, totalPages]);
+
+  const handleDelete = async (athlete: AthleteListItem) => {
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) {
+      setLoadError("Missing org_id for this account.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete athlete "${athleteLabel(athlete)}"?`);
+    if (!confirmed) return;
+
+    setDeletingId(athlete.id);
+    setLoadError(null);
+    try {
+      await deleteAthlete(athlete.id, { orgId: resolvedOrgId });
+      setRows((current) => current.filter((item) => item.id !== athlete.id));
+      setTotalCount((current) =>
+        typeof current === "number" ? Math.max(0, current - 1) : current,
+      );
+    } catch (err: any) {
+      setLoadError(err?.message || "Failed to delete athlete.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -364,6 +392,19 @@ export default function AthletesListPage() {
                             }}
                           >
                             Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            disabled={deletingId === row.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDelete(row);
+                            }}
+                          >
+                            Delete
                           </Button>
                         </Stack>
                       </ListItemButton>

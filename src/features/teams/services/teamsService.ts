@@ -53,6 +53,10 @@ export type UpdateTeamResponse =
   | { ok: true; team?: Team; data?: Team }
   | { ok: false; error: string };
 
+export type DeleteTeamResponse =
+  | { ok: true; data?: unknown; team?: Team }
+  | { ok: false; error: string };
+
 export type ListTeamsParams = {
   orgId?: string;   // often derived from auth; optional if backend uses RLS
   q?: string;       // optional search (if supported)
@@ -351,6 +355,43 @@ export async function updateTeam(
   }
 
   return team;
+}
+
+/**
+ * DELETE /functions/v1/api/teams/:id?org_id=...
+ */
+export async function deleteTeam(
+  teamId: string,
+  options: { orgId: string; baseUrl?: string },
+): Promise<void> {
+  if (!teamId?.trim()) {
+    throw new Error("teamId is required.");
+  }
+  if (!options.orgId?.trim()) {
+    throw new Error("orgId is required.");
+  }
+
+  const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+  const qs = new URLSearchParams({ org_id: options.orgId.trim() });
+  const url = `${baseUrl}/functions/v1/api/teams/${encodeURIComponent(teamId.trim())}?${qs.toString()}`;
+
+  const res = await apiFetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    orgId: options.orgId,
+  });
+
+  const data = (await res.json().catch(() => undefined)) as
+    | DeleteTeamResponse
+    | undefined;
+
+  if (!res.ok) {
+    const reason = (data as any)?.error || `${res.status} ${res.statusText}`;
+    throw new Error(reason);
+  }
+  if ((data as any)?.ok === false) {
+    throw new Error((data as any)?.error || "Failed to delete team.");
+  }
 }
 
 // ---------------------------------------------------------------------

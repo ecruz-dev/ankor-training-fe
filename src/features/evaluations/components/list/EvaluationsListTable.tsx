@@ -1,5 +1,6 @@
 ﻿import * as React from 'react'
 import { Button, Chip, Paper, Stack } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import type { EvaluationListRow } from '../../api/evaluationsApi'
 import { formatDateTime } from '../../utils/formatDateTime'
@@ -10,6 +11,8 @@ type EvaluationsListTableProps = {
   loading: boolean
   onView: (id: string) => void
   onEdit: (id: string) => void
+  onDelete: (row: EvaluationListRow) => void
+  deletingId: string | null
 }
 
 export default function EvaluationsListTable({
@@ -17,6 +20,8 @@ export default function EvaluationsListTable({
   loading,
   onView,
   onEdit,
+  onDelete,
+  deletingId,
 }: EvaluationsListTableProps) {
   const columns = React.useMemo<GridColDef<EvaluationListRow>[]>(
     () => [
@@ -60,7 +65,7 @@ export default function EvaluationsListTable({
         headerName: 'Actions',
         sortable: false,
         filterable: false,
-        width: 200,
+        width: 320,
         align: 'center',
         headerAlign: 'center',
         renderCell: (params) => {
@@ -88,12 +93,25 @@ export default function EvaluationsListTable({
               >
                 Edit
               </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                disabled={deletingId === row.id}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDelete(row)
+                }}
+              >
+                Delete
+              </Button>
             </Stack>
           )
         },
       },
     ],
-    [onEdit, onView],
+    [deletingId, onDelete, onEdit, onView],
   )
 
   return (

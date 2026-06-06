@@ -11,6 +11,9 @@ type DrillRecordingControlsProps = {
   recordedUrl: string | null;
   onStart: () => void;
   onStop: () => void;
+  onUploadFile: () => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   videoRef: React.RefObject<HTMLVideoElement>;
 };
 
@@ -24,6 +27,9 @@ export default function DrillRecordingControls({
   recordedUrl,
   onStart,
   onStop,
+  onUploadFile,
+  onFileChange,
+  fileInputRef,
   videoRef,
 }: DrillRecordingControlsProps) {
   return (
@@ -42,6 +48,21 @@ export default function DrillRecordingControls({
           {recording ? "Stop & upload" : "Record video"}
         </Button>
 
+        <Button
+          variant="outlined"
+          onClick={onUploadFile}
+          disabled={!canRecord || uploading || recording}
+        >
+          Upload video
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/mp4,.mp4"
+          hidden
+          onChange={onFileChange}
+        />
+
         {uploading && (
           <Typography variant="body2" color="text.secondary">
             Uploading video...
@@ -50,7 +71,7 @@ export default function DrillRecordingControls({
 
         {!canRecord && (
           <Typography variant="body2" color="text.secondary">
-            Recording requires a drill id and org id.
+            Video upload requires a drill id and org id.
           </Typography>
         )}
       </Stack>

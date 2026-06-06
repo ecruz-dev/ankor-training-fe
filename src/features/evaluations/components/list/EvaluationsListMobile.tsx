@@ -9,6 +9,7 @@
   Stack,
   Typography,
 } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 import type { EvaluationListRow } from '../../api/evaluationsApi'
 import { formatDateTime } from '../../utils/formatDateTime'
 import { getEvaluationStatusUi } from '../../utils/evaluationStatus'
@@ -18,6 +19,8 @@ type EvaluationsListMobileProps = {
   loading: boolean
   onView: (id: string) => void
   onEdit: (id: string) => void
+  onDelete: (row: EvaluationListRow) => void
+  deletingId: string | null
 }
 
 export default function EvaluationsListMobile({
@@ -25,6 +28,8 @@ export default function EvaluationsListMobile({
   loading,
   onView,
   onEdit,
+  onDelete,
+  deletingId,
 }: EvaluationsListMobileProps) {
   return (
     <Paper sx={{ overflow: 'hidden' }}>
@@ -89,6 +94,19 @@ export default function EvaluationsListMobile({
                           }}
                         >
                           Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          disabled={deletingId === row.id}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onDelete(row)
+                          }}
+                        >
+                          Delete
                         </Button>
                       </Stack>
                     </Stack>

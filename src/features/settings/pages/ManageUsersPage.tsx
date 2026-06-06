@@ -11,6 +11,7 @@ import {
   TextField,
   InputAdornment,
 } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
 import {
@@ -19,6 +20,7 @@ import {
 } from '@mui/x-data-grid'
 import { useNavigate } from 'react-router-dom'
 import {
+  deleteManagedUser,
   listUsers,
   type UserListItem,
   userLabel,
@@ -40,6 +42,7 @@ export default function ManageUsersPage() {
   const [totalCount, setTotalCount] = React.useState<number | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [loadError, setLoadError] = React.useState<string | null>(null)
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     let active = true
@@ -95,6 +98,34 @@ export default function ManageUsersPage() {
     })
   }, [rows, searchText])
 
+  const handleDelete = React.useCallback(
+    async (user: UserRow) => {
+      const resolvedOrgId = profile?.default_org_id?.trim() || ''
+      if (!resolvedOrgId) {
+        setLoadError('Missing org_id for this account.')
+        return
+      }
+
+      const confirmed = window.confirm(`Deactivate user "${userLabel(user)}"?`)
+      if (!confirmed) return
+
+      setDeletingId(user.user_id)
+      setLoadError(null)
+      try {
+        await deleteManagedUser({ userId: user.user_id, orgId: resolvedOrgId })
+        setRows((current) => current.filter((item) => item.user_id !== user.user_id))
+        setTotalCount((current) =>
+          typeof current === 'number' ? Math.max(0, current - 1) : current,
+        )
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : 'Failed to deactivate user.')
+      } finally {
+        setDeletingId(null)
+      }
+    },
+    [profile],
+  )
+
   const columns = React.useMemo<GridColDef<UserRow>[]>(
     () => [
       {
@@ -131,26 +162,40 @@ export default function ManageUsersPage() {
       {
         field: 'actions',
         headerName: '',
-        width: 110,
+        width: 250,
         sortable: false,
         filterable: false,
         renderCell: (params) => (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => {
-              navigate(`/settings/users/${params.row.user_id}/edit`, {
-                state: { user: params.row },
-              })
-            }}
-          >
-            Edit
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => {
+                navigate(`/settings/users/${params.row.user_id}/edit`, {
+                  state: { user: params.row },
+                })
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              disabled={deletingId === params.row.user_id}
+              onClick={() => {
+                void handleDelete(params.row)
+              }}
+            >
+              Deactivate
+            </Button>
+          </Stack>
         ),
       },
     ],
-    [navigate],
+    [deletingId, handleDelete, navigate],
   )
 
   return (
