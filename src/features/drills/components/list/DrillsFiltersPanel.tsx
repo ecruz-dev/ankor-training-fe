@@ -27,11 +27,9 @@ type DrillsFiltersPanelProps = {
   tagOptions: DrillTag[];
   tagsLoading: boolean;
   tagsError: string | null;
-  levelOptions: Array<{ id: string; label: string }>;
   onQueryChange: (value: string) => void;
   onFilterChange: (field: DrillFilterField, value: string) => void;
   onToggleTag: (tagId: string) => void;
-  onToggleLevel: (levelId: string) => void;
 };
 
 export default function DrillsFiltersPanel({
@@ -43,11 +41,9 @@ export default function DrillsFiltersPanel({
   tagOptions,
   tagsLoading,
   tagsError,
-  levelOptions,
   onQueryChange,
   onFilterChange,
   onToggleTag,
-  onToggleLevel,
 }: DrillsFiltersPanelProps) {
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
 
@@ -84,27 +80,6 @@ export default function DrillsFiltersPanel({
                 </MenuItem>
               ))}
             </TextField>
-          </Stack>
-
-          <Stack spacing={1}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Level
-            </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              {levelOptions.map((level) => {
-                const active = filters.levels.has(level.id);
-                return (
-                  <Chip
-                    key={level.id}
-                    label={level.label}
-                    size="small"
-                    color={active ? "primary" : "default"}
-                    variant={active ? "filled" : "outlined"}
-                    onClick={() => onToggleLevel(level.id)}
-                  />
-                );
-              })}
-            </Stack>
           </Stack>
 
           <Stack direction="row" alignItems="center" justifyContent="space-between">

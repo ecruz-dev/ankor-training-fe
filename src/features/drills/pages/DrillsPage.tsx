@@ -6,7 +6,6 @@ import DrillsCardGrid from "../components/list/DrillsCardGrid";
 import DrillsFiltersPanel from "../components/list/DrillsFiltersPanel";
 import DrillsListHeader from "../components/list/DrillsListHeader";
 import DrillsPlayDialog from "../components/list/DrillsPlayDialog";
-import { LEVEL_OPTIONS } from "../constants";
 import useDrillsList from "../hooks/useDrillsList";
 
 export default function DrillsPage() {
@@ -33,7 +32,6 @@ export default function DrillsPage() {
     setPage,
     updateFilterField,
     toggleTag,
-    toggleLevel,
     clearAll,
     openPlay,
     closePlay,
@@ -74,11 +72,9 @@ export default function DrillsPage() {
           tagOptions={tagOptions}
           tagsLoading={tagsLoading}
           tagsError={tagsError}
-          levelOptions={LEVEL_OPTIONS}
           onQueryChange={setQuery}
           onFilterChange={updateFilterField}
           onToggleTag={toggleTag}
-          onToggleLevel={toggleLevel}
         />
 
         {!loading && drills.length === 0 ? (

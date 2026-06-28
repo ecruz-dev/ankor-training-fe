@@ -6,7 +6,6 @@ import { toYouTubeThumbnail } from "./youtube";
 export const createEmptyFilters = (): DrillFilters => ({
   tags: new Set(),
   segmentId: "",
-  levels: new Set(),
   minAge: "",
   maxAge: "",
   minPlayers: "",

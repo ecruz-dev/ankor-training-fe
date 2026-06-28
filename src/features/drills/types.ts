@@ -1,7 +1,6 @@
 export type DrillFilters = {
   tags: Set<string>;
   segmentId: string;
-  levels: Set<string>;
   minAge: string;
   maxAge: string;
   minPlayers: string;

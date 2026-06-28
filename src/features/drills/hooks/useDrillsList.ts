@@ -49,10 +49,6 @@ export default function useDrillsList() {
     () => Array.from(filters.tags),
     [filters.tags],
   );
-  const selectedLevels = React.useMemo(
-    () => Array.from(filters.levels),
-    [filters.levels],
-  );
   const tagLabelById = React.useMemo(() => {
     const map = new Map<string, string>();
     tagOptions.forEach((tag) => map.set(tag.id, tag.name));
@@ -80,7 +76,6 @@ export default function useDrillsList() {
           name: query,
           skillTagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
           segmentIds: filters.segmentId ? [filters.segmentId] : undefined,
-          levels: selectedLevels.length > 0 ? selectedLevels : undefined,
           minAge: toOptionalNumber(filters.minAge),
           maxAge: toOptionalNumber(filters.maxAge),
           minPlayers: toOptionalNumber(filters.minPlayers),
@@ -109,7 +104,6 @@ export default function useDrillsList() {
   }, [
     query,
     selectedTagIds,
-    selectedLevels,
     filters.segmentId,
     filters.minAge,
     filters.maxAge,
@@ -249,16 +243,6 @@ export default function useDrillsList() {
     setPage(1);
   }, []);
 
-  const toggleLevel = React.useCallback((levelId: string) => {
-    setFilters((prev) => {
-      const next = new Set(prev.levels);
-      if (next.has(levelId)) next.delete(levelId);
-      else next.add(levelId);
-      return { ...prev, levels: next };
-    });
-    setPage(1);
-  }, []);
-
   const clearAll = React.useCallback(() => {
     setQuery("");
     setFilters(createEmptyFilters());
@@ -288,7 +272,6 @@ export default function useDrillsList() {
     setQuery: setQueryValue,
     updateFilterField,
     toggleTag,
-    toggleLevel,
     clearAll,
     openPlay,
     closePlay,
