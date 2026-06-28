@@ -735,7 +735,6 @@ export default function EvaluationReportDetailPage() {
             scrollButtons="auto"
           >
             <Tab label="Skills" />
-            <Tab label="Workouts" />
             <Tab label="Data" />
           </Tabs>
           <Divider />
@@ -743,19 +742,7 @@ export default function EvaluationReportDetailPage() {
             {tabIndex === 0 && (
               <SkillsTab report={report} onPlaySkillVideo={openSkillPlay} />
             )}
-            {tabIndex === 1 && (
-              <WorkoutsTab
-                report={report}
-                activeWorkout={activeWorkout}
-                activeLevelIndex={activeLevelIndex}
-                repCount={repCount}
-                targetReps={workoutTargetReps}
-                onRepCount={handleRepCount}
-                isLastLevel={isLastLevel}
-                onPlayDrill={openDrillPlay}
-              />
-            )}
-            {tabIndex === 2 && <DataTab report={report} />}
+            {tabIndex === 1 && <DataTab report={report} />}
           </Box>
         </Paper>
       </Stack>

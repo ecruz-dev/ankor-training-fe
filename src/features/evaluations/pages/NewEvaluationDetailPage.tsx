@@ -13,7 +13,6 @@ import NewEvaluationActions from '../components/NewEvaluationActions'
 import NewEvaluationDesktopPanel from '../components/NewEvaluationDesktopPanel'
 import NewEvaluationFilters from '../components/NewEvaluationFilters'
 import NewEvaluationMobilePanel from '../components/NewEvaluationMobilePanel'
-import VoiceAgentPanel from '../components/VoiceAgentPanel'
 import { useEvaluationLookups } from '../hooks/useEvaluationLookups'
 import { useSkillsDialog } from '../hooks/useSkillsDialog'
 import { buildEvaluationItems } from '../utils/buildEvaluationItems'
@@ -181,10 +180,6 @@ export default function NewEvaluationDetailPage() {
   const canRenderMatrix = hasScorecardSelected && hasSelectedAthletes
   const hasEvaluationContext = canRenderMatrix && hasActiveCategories
   const isPositionFilterDisabled = allTeamAthletes.length === 0
-  const selectedTeamName = React.useMemo(
-    () => teams.find((team) => team.id === selectedTeamId)?.name ?? null,
-    [selectedTeamId, teams],
-  )
 
   React.useEffect(() => {
     if (activeCategories.length === 0) {
@@ -855,13 +850,6 @@ export default function NewEvaluationDetailPage() {
           onSave={handleSaveEvaluations}
           saving={saving}
           disableSave={!hasEvaluationContext}
-        />
-
-        <VoiceAgentPanel
-          orgId={orgId}
-          teamId={selectedTeamId || null}
-          teamName={selectedTeamName}
-          coachId={coachId}
         />
 
         {isMobile ? (

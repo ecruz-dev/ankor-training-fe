@@ -36,6 +36,7 @@ export type DialogDrill = {
   category: string;
   defaultDurationMin: number;
   positions: Position[];
+  item: DrillItem;
 };
 
 type DrillPickerDialogProps = {
@@ -101,6 +102,7 @@ function toDialogDrill(item: DrillItem): DialogDrill {
     category: item.segment?.name?.trim() || "General",
     defaultDurationMin: duration,
     positions: extractPositions(item.skill_tags),
+    item,
   };
 }
 

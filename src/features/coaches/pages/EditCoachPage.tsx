@@ -1,10 +1,8 @@
 import * as React from "react";
 import {
-  Alert,
   Box,
   Button,
   Paper,
-  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -38,7 +36,6 @@ export default function EditCoachPage() {
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
-  const [toastOpen, setToastOpen] = React.useState(false);
 
   React.useEffect(() => {
     setCoach(routeCoach);
@@ -49,7 +46,6 @@ export default function EditCoachPage() {
     setErrors({});
     setSubmitError(null);
     setLoadError(null);
-    setToastOpen(false);
   }, [coachId, routeCoach]);
 
   React.useEffect(() => {
@@ -117,7 +113,7 @@ export default function EditCoachPage() {
 
     try {
       setSaving(true);
-      const updated = await updateCoach(
+      await updateCoach(
         coachId,
         {
           full_name: fullName.trim(),
@@ -127,13 +123,7 @@ export default function EditCoachPage() {
         { orgId },
       );
 
-      setCoach(updated);
-      setFullName(updated.full_name ?? "");
-      setEmail(updated.email ?? "");
-      setPhone(updated.phone ?? "");
-      setCellNumber(updated.cell_number ?? "");
-      setSubmitError(null);
-      setToastOpen(true);
+      navigate("/coaches");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to update coach.";
       setSubmitError(message);
@@ -161,15 +151,15 @@ export default function EditCoachPage() {
               Edit Coach
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Update coach details.
+              Update a coach account for your organization.
             </Typography>
           </Box>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
             <Button variant="outlined" onClick={() => navigate("/coaches")}>
-              Back
+              Cancel
             </Button>
             <Button type="submit" variant="contained" disabled={saving || loading}>
-              {saving ? "Saving..." : "Update"}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </Stack>
         </Stack>
@@ -205,10 +195,13 @@ export default function EditCoachPage() {
               }}
             >
               <TextField
-                label="User ID"
-                value={coach?.user_id ?? ""}
+                label="Full name"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                error={Boolean(errors.full_name)}
+                helperText={errors.full_name}
+                required
                 fullWidth
-                InputProps={{ readOnly: true }}
               />
               <TextField
                 label="Email"
@@ -217,15 +210,6 @@ export default function EditCoachPage() {
                 helperText="Email cannot be edited here."
                 fullWidth
                 InputProps={{ readOnly: true }}
-              />
-              <TextField
-                label="Full name"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                error={Boolean(errors.full_name)}
-                helperText={errors.full_name}
-                required
-                fullWidth
               />
               <TextField
                 label="Phone"
@@ -244,23 +228,30 @@ export default function EditCoachPage() {
             </Box>
           </Stack>
         </Paper>
-      </Stack>
 
-      <Snackbar
-        open={toastOpen}
-        autoHideDuration={3000}
-        onClose={() => setToastOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setToastOpen(false)}
-          severity="success"
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          Coach record saved successfully.
-        </Alert>
-      </Snackbar>
+        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+          <Stack spacing={2}>
+            <Typography variant="subtitle1" fontWeight={700}>
+              Account
+            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                gap: 2,
+              }}
+            >
+              <TextField
+                label="User ID"
+                value={coach?.user_id ?? ""}
+                helperText="Account identifier"
+                fullWidth
+                InputProps={{ readOnly: true }}
+              />
+            </Box>
+          </Stack>
+        </Paper>
+      </Stack>
     </Box>
   );
 }

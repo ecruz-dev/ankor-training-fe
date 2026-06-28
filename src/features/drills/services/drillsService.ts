@@ -188,6 +188,20 @@ const DEFAULT_BASE_URL =
 const RE_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function drillsApiUrl(path: string, baseUrl = DEFAULT_BASE_URL) {
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  const normalizedPath = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+
+  if (normalizedBase.endsWith("/functions/v1")) {
+    return `${normalizedBase}/api/drills${normalizedPath}`;
+  }
+  if (normalizedBase.includes(".supabase.co")) {
+    return `${normalizedBase}/functions/v1/api/drills${normalizedPath}`;
+  }
+
+  return `${normalizedBase}/api/drills${normalizedPath}`;
+}
+
 function normalizeCreatePayload(input: CreateDrillInput) {
   if (!input.org_id?.trim()) throw new Error("org_id is required.");
   if (!input.segment_id?.trim()) throw new Error("segment_id is required.");
@@ -481,6 +495,19 @@ function normalizeDrillMedia(raw: unknown): DrillMedia[] {
 }
 
 function normalizeDrillDetail(raw: any): DrillItem {
+  const toNullableNumber = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const pickNullableNumber = (...values: unknown[]) => {
+    for (const value of values) {
+      const parsed = toNullableNumber(value);
+      if (parsed !== null) return parsed;
+    }
+    return null;
+  };
+
   const segmentRaw = raw?.segment;
   const segment =
     segmentRaw && typeof segmentRaw === "object"
@@ -523,17 +550,11 @@ function normalizeDrillDetail(raw: any): DrillItem {
         : typeof raw?.difficulty === "string"
           ? raw.difficulty
           : null,
-    min_players: Number.isFinite(raw?.min_players)
-      ? Number(raw.min_players)
-      : null,
-    max_players: Number.isFinite(raw?.max_players)
-      ? Number(raw.max_players)
-      : null,
-    min_age: Number.isFinite(raw?.min_age) ? Number(raw.min_age) : null,
-    max_age: Number.isFinite(raw?.max_age) ? Number(raw.max_age) : null,
-    duration_min: Number.isFinite(raw?.duration_min)
-      ? Number(raw.duration_min)
-      : null,
+    min_players: pickNullableNumber(raw?.min_players, raw?.minPlayers),
+    max_players: pickNullableNumber(raw?.max_players, raw?.maxPlayers),
+    min_age: pickNullableNumber(raw?.min_age, raw?.minAge),
+    max_age: pickNullableNumber(raw?.max_age, raw?.maxAge),
+    duration_min: pickNullableNumber(raw?.duration_min, raw?.durationMin),
     visibility: typeof raw?.visibility === "string" ? raw.visibility : null,
     is_archived: Boolean(raw?.is_archived),
     created_at: raw?.created_at ?? "",
@@ -545,14 +566,14 @@ function normalizeDrillDetail(raw: any): DrillItem {
 }
 
 /**
- * POST /functions/v1/api/drills
+ * POST /api/drills
  */
 export async function createDrill(
   input: CreateDrillInput,
   baseUrl = DEFAULT_BASE_URL,
 ): Promise<CreateDrillResponse> {
   const payload = normalizeCreatePayload(input);
-  const url = `${baseUrl}/functions/v1/api/drills`;
+  const url = drillsApiUrl("", baseUrl);
 
   const res = await apiFetch(url, {
     method: "POST",
@@ -577,7 +598,7 @@ export async function createDrill(
 }
 
 /**
- * PATCH /functions/v1/api/drills/:id
+ * PATCH /api/drills/:id
  */
 export async function updateDrill(
   drillId: string,
@@ -590,7 +611,7 @@ export async function updateDrill(
 
   const { orgId = null, baseUrl = DEFAULT_BASE_URL } = options;
   const payload = normalizeUpdatePayload(input);
-  const url = `${baseUrl}/functions/v1/api/drills/${drillId}`;
+  const url = drillsApiUrl(`/${drillId}`, baseUrl);
 
   const res = await apiFetch(url, {
     method: "PATCH",
@@ -620,13 +641,13 @@ export async function updateDrill(
 }
 
 /**
- * POST /functions/v1/api/drills/media/upload-url
+ * POST /api/drills/media/upload-url
  */
 export async function createDrillMediaUploadUrl(
   payload: DrillMediaUploadUrlInput,
   baseUrl = DEFAULT_BASE_URL,
 ): Promise<DrillMediaUploadUrlResponse> {
-  const url = `${baseUrl}/functions/v1/api/drills/media/upload-url`;
+  const url = drillsApiUrl("/media/upload-url", baseUrl);
 
   const res = await apiFetch(url, {
     method: "POST",
@@ -654,7 +675,7 @@ export async function createDrillMediaUploadUrl(
 }
 
 /**
- * POST /functions/v1/api/drills/media
+ * POST /api/drills/media
  */
 export async function createDrillMedia(
   payload: CreateDrillMediaInput,
@@ -664,7 +685,7 @@ export async function createDrillMedia(
     throw new Error("drill_id is required.");
   }
 
-  const url = `${baseUrl}/functions/v1/api/drills/media`;
+  const url = drillsApiUrl("/media", baseUrl);
 
   const res = await apiFetch(url, {
     method: "POST",
@@ -692,7 +713,7 @@ export async function createDrillMedia(
 }
 
 /**
- * GET /functions/v1/api/drills/media/:drillId/play
+ * GET /api/drills/media/:drillId/play
  */
 export async function getDrillMediaPlay(
   drillId: string,
@@ -703,7 +724,7 @@ export async function getDrillMediaPlay(
   }
 
   const { orgId = null, baseUrl = DEFAULT_BASE_URL } = options;
-  const url = `${baseUrl}/functions/v1/api/drills/media/${drillId}/play`;
+  const url = drillsApiUrl(`/media/${drillId}/play`, baseUrl);
 
   const res = await apiFetch(url, {
     method: "GET",
@@ -730,7 +751,7 @@ export async function getDrillMediaPlay(
 }
 
 /**
- * GET /functions/v1/api/drills/list
+ * GET /api/drills/list
  */
 export async function listDrills(
   params: ListDrillsParams,
@@ -741,7 +762,7 @@ export async function listDrills(
   }
 
   const qs = buildListQuery(params);
-  const url = `${baseUrl}/functions/v1/api/drills/list?${qs}`;
+  const url = `${drillsApiUrl("/list", baseUrl)}?${qs}`;
 
   const res = await apiFetch(url, {
     method: "GET",
@@ -775,7 +796,7 @@ export async function listDrills(
 }
 
 /**
- * GET /functions/v1/api/drills/:id
+ * GET /api/drills/:id
  */
 export async function getDrilById(
   drillId: string,
@@ -786,7 +807,7 @@ export async function getDrilById(
   }
 
   const { orgId = null, baseUrl = DEFAULT_BASE_URL } = options;
-  const url = `${baseUrl}/functions/v1/api/drills/${drillId}`;
+  const url = drillsApiUrl(`/${drillId}`, baseUrl);
 
   const res = await apiFetch(url, {
     method: "GET",
@@ -816,13 +837,13 @@ export async function getDrilById(
 }
 
 /**
- * GET /functions/v1/api/drills/segments
+ * GET /api/drills/segments
  */
 export async function listDrillSegments(
   params: { orgId?: string | null; baseUrl?: string } = {},
 ): Promise<DrillSegment[]> {
   const { orgId = null, baseUrl = DEFAULT_BASE_URL } = params;
-  const url = `${baseUrl}/functions/v1/api/drills/segments`;
+  const url = drillsApiUrl("/segments", baseUrl);
 
   const res = await apiFetch(url, {
     method: "GET",
@@ -846,13 +867,13 @@ export async function listDrillSegments(
 }
 
 /**
- * GET /functions/v1/api/drills/tags
+ * GET /api/drills/tags
  */
 export async function listDrillTags(
   params: { orgId?: string | null; baseUrl?: string } = {},
 ): Promise<DrillTag[]> {
   const { orgId = null, baseUrl = DEFAULT_BASE_URL } = params;
-  const url = `${baseUrl}/functions/v1/api/drills/tags`;
+  const url = drillsApiUrl("/tags", baseUrl);
 
   const res = await apiFetch(url, {
     method: "GET",

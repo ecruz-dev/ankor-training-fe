@@ -21,7 +21,6 @@ export default function NewCoachPage() {
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [phone, setPhone] = React.useState("");
-  const [cellNumber, setCellNumber] = React.useState("");
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [saving, setSaving] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -64,7 +63,6 @@ export default function NewCoachPage() {
         email: email.trim(),
         password: password.trim(),
         phone: phone.trim() || null,
-        cell_number: cellNumber.trim() || null,
       });
 
       navigate("/coaches");
@@ -150,13 +148,6 @@ export default function NewCoachPage() {
                 label="Phone"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                helperText="Optional"
-                fullWidth
-              />
-              <TextField
-                label="Cell number"
-                value={cellNumber}
-                onChange={(event) => setCellNumber(event.target.value)}
                 helperText="Optional"
                 fullWidth
               />

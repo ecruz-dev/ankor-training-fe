@@ -5,8 +5,10 @@ export type DrillFormErrors = Record<string, string>;
 export function validateDrillForm(
   form: DrillFormState,
   youtubeId: string | null,
+  options: { validateYouTubeUrl?: boolean } = {},
 ): DrillFormErrors {
   const nextErrors: DrillFormErrors = {};
+  const { validateYouTubeUrl = true } = options;
 
   if (!form.name.trim()) nextErrors.name = "Drill name is required.";
   if (!form.segmentId) nextErrors.segmentId = "Segment is required.";
@@ -23,7 +25,7 @@ export function validateDrillForm(
     nextErrors.maxAge = "Max age must be greater than min age.";
   }
 
-  if (form.youtubeUrl.trim() && !youtubeId) {
+  if (validateYouTubeUrl && form.youtubeUrl.trim() && !youtubeId) {
     nextErrors.youtubeUrl = "Enter a valid YouTube URL.";
   }
 

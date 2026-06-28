@@ -14,7 +14,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Alert,
 } from '@mui/material'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
@@ -27,75 +29,13 @@ import {
   GridToolbarExport,
 } from '@mui/x-data-grid'
 import { useNavigate } from 'react-router-dom'
+import {
+  listOrganizations,
+  type OrganizationListItem,
+} from '../services/organizationsService'
 
 // ---- Types ----
-export type OrgRow = {
-  id: string
-  name: string
-  slug: string
-  sport_mode: 'single' | 'multi'
-  created_at: string
-  updated_at: string
-  program_gender: 'boys' | 'girls' | 'coed'
-}
-
-// ---- Mock data (replace with API hook/service call when ready) ----
-const ROWS: OrgRow[] = [
-  {
-    id: '7498990d-aa4c-401d-92a7-67152514858a',
-    name: 'ANKOR Lacrosse Club',
-    slug: 'ankor-lacrosse',
-    sport_mode: 'single',
-    created_at: '2025-10-22 13:04:35.132919+00',
-    updated_at: '2025-11-04 01:33:34.069174+00',
-    program_gender: 'coed',
-  },
-  {
-    id: '5f8d6a10-3a2b-4c1e-9a77-8c2f2b7e9a10',
-    name: 'Boulder Lacrosse Club',
-    slug: 'boulder-lacrosse-club',
-    sport_mode: 'single',
-    created_at: '2025-10-28 22:29:41.049577+00',
-    updated_at: '2025-11-04 01:33:34.069174+00',
-    program_gender: 'coed',
-  },
-  {
-    id: '9a3b2c41-8d77-4f5a-9e21-1234567890ab',
-    name: 'Seattle Lacrosse Club',
-    slug: 'seattle-lacrosse-club',
-    sport_mode: 'single',
-    created_at: '2025-10-28 22:29:41.049577+00',
-    updated_at: '2025-11-04 01:33:34.069174+00',
-    program_gender: 'coed',
-  },
-  {
-    id: '65c67f2c-fbd8-46e7-b026-f91cc1d37674',
-    name: 'Ankor Elite Academy',
-    slug: 'ankor-elite-academy',
-    sport_mode: 'single',
-    created_at: '2025-11-04 01:51:36.462866+00',
-    updated_at: '2025-11-04 01:51:36.462866+00',
-    program_gender: 'coed',
-  },
-  {
-    id: '7a286917-279d-434b-b58a-cfffe13ac9e3',
-    name: 'My Org Test',
-    slug: 'my-org-test',
-    sport_mode: 'single',
-    created_at: '2025-11-04 13:42:08.475271+00',
-    updated_at: '2025-11-04 13:42:08.475271+00',
-    program_gender: 'boys',
-  },
-  {
-    id: 'b41e7242-24c0-4d9e-95b2-a43333df82ca',
-    name: 'My Org Test3',
-    slug: 'my-org-test3',
-    sport_mode: 'single',
-    created_at: '2025-11-04 14:41:15.806601+00',
-    updated_at: '2025-11-04 14:41:15.806601+00',
-    program_gender: 'boys',
-  },
-]
+export type OrgRow = OrganizationListItem
 
 // ---- Helpers ----
 const fmtDate = (value: string) => {
@@ -183,6 +123,37 @@ export default function OrganizationProfilePage() {
   const [searchText, setSearchText] = React.useState('')
   const [gender, setGender] = React.useState<OrgToolbarProps['gender']>('all')
   const [sport, setSport] = React.useState<OrgToolbarProps['sport']>('all')
+  const [rows, setRows] = React.useState<OrgRow[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let active = true
+
+    const loadOrganizations = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const organizations = await listOrganizations()
+        if (active) setRows(organizations)
+      } catch (err) {
+        if (active) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to load organizations.',
+          )
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void loadOrganizations()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const onReset = () => {
     setSearchText('')
@@ -190,21 +161,24 @@ export default function OrganizationProfilePage() {
     setSport('all')
   }
 
+  const onView = (row: OrgRow) => {
+    navigate(`/settings/organization/${row.id}`)
+  }
+
   const onEdit = (row: OrgRow) => {
-    // Adjust this path to your edit route (or open a dialog instead)
     navigate(`/settings/organization/${row.id}/edit`)
   }
 
   // Derived filtering
   const filteredRows = React.useMemo(() => {
     const q = searchText.trim().toLowerCase()
-    return ROWS.filter((r) => {
+    return rows.filter((r) => {
       const matchesSearch = !q || r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q)
       const matchesGender = gender === 'all' || r.program_gender === gender
       const matchesSport = sport === 'all' || r.sport_mode === sport
       return matchesSearch && matchesGender && matchesSport
     })
-  }, [searchText, gender, sport])
+  }, [rows, searchText, gender, sport])
 
   const columns = React.useMemo<GridColDef<OrgRow>[]>(
     () => [
@@ -236,18 +210,28 @@ export default function OrganizationProfilePage() {
         headerName: 'Actions',
         sortable: false,
         filterable: false,
-        width: 120,
+        width: 210,
         align: 'center',
         headerAlign: 'center',
         renderCell: (params: GridRenderCellParams<OrgRow>) => (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => onEdit(params.row)}
-          >
-            Edit
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<VisibilityIcon />}
+              onClick={() => onView(params.row)}
+            >
+              View
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => onEdit(params.row)}
+            >
+              Edit
+            </Button>
+          </Stack>
         ),
       },
     ],
@@ -262,9 +246,16 @@ export default function OrganizationProfilePage() {
         </Typography>
       </Stack>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Box sx={{ height: 560, width: '100%' }}>
         <DataGrid
           rows={filteredRows}
+          loading={loading}
           getRowId={(r) => r.id}
           columns={columns}
           disableRowSelectionOnClick

@@ -26,6 +26,9 @@ import {
   type Skill,
   type SkillDrillMapItem,
 } from "../services/skillsService";
+import DrillPickerDialog, {
+  type DialogDrill,
+} from "../../practice-plans/components/DrillPickerDialog";
 import SkillFormFields from "../components/SkillFormFields";
 import SkillRecordingControls from "../components/SkillRecordingControls";
 import {
@@ -208,6 +211,7 @@ export default function SkillEditPage() {
   const [mappedDrillIds, setMappedDrillIds] = React.useState<string[]>([]);
   const [drillsLoading, setDrillsLoading] = React.useState(false);
   const [drillsError, setDrillsError] = React.useState<string | null>(null);
+  const [addDrillsOpen, setAddDrillsOpen] = React.useState(false);
   const [recording, setRecording] = React.useState(false);
   const [recordingError, setRecordingError] = React.useState<string | null>(null);
   const [uploading, setUploading] = React.useState(false);
@@ -233,6 +237,7 @@ export default function SkillEditPage() {
     setSelectedDrills([]);
     setMappedDrillIds([]);
     setDrillsError(null);
+    setAddDrillsOpen(false);
   }, [skillId]);
 
   React.useEffect(() => {
@@ -426,6 +431,15 @@ export default function SkillEditPage() {
     });
 
     setMappedDrillIds(Array.from(selectedIds));
+  };
+
+  const handleAddDrillFromDialog = (drill: DialogDrill) => {
+    setSelectedDrills((prev) => {
+      if (prev.some((selected) => selected.id === drill.id)) return prev;
+      const next = [...prev, drill.item];
+      setDrillOptions((options) => mergeDrillOptions(options, [drill.item]));
+      return next;
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -793,14 +807,28 @@ export default function SkillEditPage() {
 
         <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
           <Stack spacing={2}>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
-                Drill map
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Select drills that train this skill.
-              </Typography>
-            </Box>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              alignItems={{ sm: "center" }}
+              justifyContent="space-between"
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Drill map
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Select drills that train this skill.
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                onClick={() => setAddDrillsOpen(true)}
+                disabled={drillsLoading || !orgId}
+              >
+                Add drills
+              </Button>
+            </Stack>
             <Autocomplete
               multiple
               options={drillOptions}
@@ -835,6 +863,13 @@ export default function SkillEditPage() {
           </Stack>
         </Paper>
       </Stack>
+      <DrillPickerDialog
+        open={addDrillsOpen}
+        orgId={orgId ?? ""}
+        onClose={() => setAddDrillsOpen(false)}
+        onAddDrill={handleAddDrillFromDialog}
+        missingOrgIdMessage="Missing org_id. Please sign in again."
+      />
     </Box>
   );
 }

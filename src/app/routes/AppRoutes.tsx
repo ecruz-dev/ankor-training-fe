@@ -50,6 +50,8 @@ const CoachHomePage = lazy(
   () => import('../../features/home/pages/CoachHomePage'),
 )
 const OrganizationProfilePage = lazy(() => import('../../features/settings/pages/OrganizationProfile'))
+const ViewOrganizationPage = lazy(() => import('../../features/settings/pages/ViewOrganizationPage'))
+const EditOrgPage = lazy(() => import('../../features/settings/pages/EditOrgPage'))
 const ManageUsersPage = lazy(() => import('../../features/settings/pages/ManageUsersPage'))
 const EditUserPage = lazy(() => import('../../features/settings/pages/EditUserPage'))
 const SkillListPage = lazy(() => import('../../features/skills/pages/SkillListPage'))
@@ -133,6 +135,8 @@ export default function AppRoutes() {
 
           {/* Settings */}
           <Route path="settings/organization" element={<OrganizationProfilePage />} />
+          <Route path="settings/organization/:id" element={<ViewOrganizationPage />} />
+          <Route path="settings/organization/:id/edit" element={<EditOrgPage />} />
           <Route path="settings/users" element={<ManageUsersPage />} />
           <Route path="settings/users/:id/edit" element={<EditUserPage />} />
 

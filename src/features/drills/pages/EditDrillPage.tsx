@@ -406,7 +406,9 @@ export default function EditDrillPage() {
     event.preventDefault();
     setSubmitError(null);
 
-    const nextErrors = validateDrillForm(form, youtubeId);
+    const nextErrors = validateDrillForm(form, youtubeId, {
+      validateYouTubeUrl: false,
+    });
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -746,6 +748,7 @@ export default function EditDrillPage() {
           onSkillTagsChange={(value) =>
             setForm((prev) => ({ ...prev, skillTags: value }))
           }
+          showYouTubeFields={false}
           videoExtras={
             <DrillRecordingControls
               canRecord={canRecord}

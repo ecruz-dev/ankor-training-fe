@@ -33,6 +33,7 @@ type DrillFormFieldsProps = {
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSkillTagsChange: (nextTags: DrillTag[]) => void;
   videoExtras?: React.ReactNode;
+  showYouTubeFields?: boolean;
 };
 
 export default function DrillFormFields({
@@ -48,6 +49,7 @@ export default function DrillFormFields({
   onFieldChange,
   onSkillTagsChange,
   videoExtras,
+  showYouTubeFields = true,
 }: DrillFormFieldsProps) {
   return (
     <>
@@ -211,29 +213,33 @@ export default function DrillFormFields({
             Video
           </Typography>
           <Stack spacing={1.5}>
-            <TextField
-              label="YouTube URL"
-              value={form.youtubeUrl}
-              onChange={onFieldChange("youtubeUrl")}
-              fullWidth
-              error={Boolean(errors.youtubeUrl)}
-              helperText={errors.youtubeUrl || "Paste a YouTube link."}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LinkIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <PreviewBox
-              label="YouTube preview"
-              imageUrl={toYouTubeThumbnailFromId(youtubeId)}
-            />
+            {showYouTubeFields ? (
+              <>
+                <TextField
+                  label="YouTube URL"
+                  value={form.youtubeUrl}
+                  onChange={onFieldChange("youtubeUrl")}
+                  fullWidth
+                  error={Boolean(errors.youtubeUrl)}
+                  helperText={errors.youtubeUrl || "Paste a YouTube link."}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LinkIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <PreviewBox
+                  label="YouTube preview"
+                  imageUrl={toYouTubeThumbnailFromId(youtubeId)}
+                />
+              </>
+            ) : null}
 
             {videoExtras ? (
               <>
-                <Divider />
+                {showYouTubeFields ? <Divider /> : null}
                 {videoExtras}
               </>
             ) : null}
