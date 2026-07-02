@@ -26,7 +26,12 @@ import {
 import { useTheme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 
-import { listDrills, type DrillItem } from "../../drills/services/drillsService";
+import {
+  listDrills,
+  listDrillSegments,
+  type DrillItem,
+  type DrillSegment,
+} from "../../drills/services/drillsService";
 
 export type Position = "Attack" | "Midfield" | "Defense" | "Goalie" | "FOGO" | "Any";
 
@@ -117,7 +122,8 @@ export default function DrillPickerDialog({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const [drillSearch, setDrillSearch] = React.useState("");
-  const [category, setCategory] = React.useState("All");
+  const [categoryId, setCategoryId] = React.useState("All");
+  const [segments, setSegments] = React.useState<DrillSegment[]>([]);
   const [position, setPosition] = React.useState<Position | "All">("All");
   const [maxDuration, setMaxDuration] = React.useState<number | "">("");
   const [drills, setDrills] = React.useState<DialogDrill[]>([]);
@@ -132,6 +138,28 @@ export default function DrillPickerDialog({
     setDrillsPage(1);
     setDurationById({});
   }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const resolvedOrgId = orgId?.trim() || "";
+    if (!resolvedOrgId) return;
+
+    let active = true;
+
+    listDrillSegments({ orgId: resolvedOrgId })
+      .then((items) => {
+        if (!active) return;
+        setSegments(items);
+      })
+      .catch(() => {
+        if (!active) return;
+        setSegments([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, orgId]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -151,6 +179,7 @@ export default function DrillPickerDialog({
     listDrills({
       orgId: resolvedOrgId,
       name: name ? name : undefined,
+      segmentIds: categoryId !== "All" ? [categoryId] : undefined,
       limit: DRILLS_PAGE_SIZE,
       offset: (drillsPage - 1) * DRILLS_PAGE_SIZE,
     })
@@ -172,7 +201,7 @@ export default function DrillPickerDialog({
     return () => {
       active = false;
     };
-  }, [open, drillsPage, drillSearch, orgId, missingOrgIdMessage]);
+  }, [open, drillsPage, drillSearch, categoryId, orgId, missingOrgIdMessage]);
 
   React.useEffect(() => {
     if (!open || drills.length === 0) return;
@@ -188,17 +217,12 @@ export default function DrillPickerDialog({
   }, [open, drills]);
 
   const categoryOptions = React.useMemo(() => {
-    const categories = new Set<string>();
-    for (const drill of drills) {
-      const label = drill.category?.trim();
-      if (label) categories.add(label);
-    }
-    const options = ["All", ...Array.from(categories).sort((a, b) => a.localeCompare(b))];
-    if (category !== "All" && !options.includes(category)) {
-      options.splice(1, 0, category);
-    }
-    return options;
-  }, [drills, category]);
+    const named = segments
+      .filter((s) => s.name?.trim())
+      .map((s) => ({ id: s.id, name: s.name!.trim() }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return [{ id: "All", name: "All" }, ...named];
+  }, [segments]);
 
   const positionOptions = React.useMemo(() => {
     const positions = new Set<Position>();
@@ -216,14 +240,13 @@ export default function DrillPickerDialog({
 
   const availableDrills = React.useMemo(() => {
     return drills.filter((d) => {
-      if (category !== "All" && d.category !== category) return false;
       if (position !== "All" && !d.positions.includes(position) && !d.positions.includes("Any")) {
         return false;
       }
       if (maxDuration !== "" && d.defaultDurationMin > maxDuration) return false;
       return true;
     });
-  }, [category, position, maxDuration, drills]);
+  }, [position, maxDuration, drills]);
 
   const totalDrillPages = Math.max(1, Math.ceil(drillsTotalCount / DRILLS_PAGE_SIZE));
 
@@ -270,15 +293,15 @@ export default function DrillPickerDialog({
               <InputLabel>Category</InputLabel>
               <Select
                 label="Category"
-                value={category}
+                value={categoryId}
                 onChange={(e) => {
-                  setCategory(e.target.value);
+                  setCategoryId(e.target.value);
                   setDrillsPage(1);
                 }}
               >
                 {categoryOptions.map((c) => (
-                  <MenuItem key={c} value={c}>
-                    {c}
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -433,7 +456,7 @@ export default function DrillPickerDialog({
         <Button
           onClick={() => {
             setDrillSearch("");
-            setCategory("All");
+            setCategoryId("All");
             setPosition("All");
             setMaxDuration("");
             setDrillsPage(1);
