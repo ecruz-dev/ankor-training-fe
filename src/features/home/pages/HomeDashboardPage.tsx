@@ -2,21 +2,14 @@ import * as React from 'react'
 import {
   Avatar,
   Box,
-  Button,
   Card,
   CardContent,
   Grid,
-  IconButton,
   Paper,
   Stack,
   Typography,
 } from '@mui/material'
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter'
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import RepeatIcon from '@mui/icons-material/Repeat'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import ShareIcon from '@mui/icons-material/Share'
@@ -27,16 +20,6 @@ import {
   getWorkoutSummary,
   type WorkoutDrillLevel,
 } from '../../evaluations/api/evaluationsApi'
-
-const WEEK_DAYS = [
-  { day: 'Sat', date: 24, dot: false },
-  { day: 'Sun', date: 25, dot: false },
-  { day: 'Mon', date: 26, dot: true },
-  { day: 'Tue', date: 27, dot: false, selected: true },
-  { day: 'Wed', date: 28, dot: true },
-  { day: 'Thu', date: 29, dot: true },
-  { day: 'Fri', date: 30, dot: true },
-]
 
 export default function HomeDashboardPage() {
   const { orgId, athleteId } = useAuth()
@@ -188,93 +171,6 @@ export default function HomeDashboardPage() {
 
         <Grid item xs={12} md={6}>
           <Stack spacing={3}>
-            <Card elevation={0} sx={{ borderRadius: 3, boxShadow: 2 }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack spacing={2}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Box sx={{ flexGrow: 1 }} />
-                    <Typography variant="subtitle2" color="text.secondary">
-                      January 2026
-                    </Typography>
-                    <Box sx={{ flexGrow: 1 }} />
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<CalendarMonthIcon />}
-                      endIcon={<KeyboardArrowDownIcon />}
-                      sx={{
-                        textTransform: 'none',
-                        borderRadius: 999,
-                      }}
-                    >
-                      Monthly
-                    </Button>
-                    <IconButton size="small">
-                      <MoreHorizIcon />
-                    </IconButton>
-                  </Stack>
-                  <Stack direction="row" alignItems="center" spacing={1.5}>
-                    <IconButton size="small">
-                      <ChevronLeftIcon />
-                    </IconButton>
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                        gap: 1,
-                        flexGrow: 1,
-                      }}
-                    >
-                      {WEEK_DAYS.map((item) => (
-                        <Box key={item.day} sx={{ textAlign: 'center' }}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                          >
-                            {item.day}
-                          </Typography>
-                          <Box
-                            sx={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: '50%',
-                              border: item.selected
-                                ? '1.5px solid'
-                                : '1px solid transparent',
-                              borderColor: item.selected
-                                ? 'grey.700'
-                                : 'transparent',
-                              display: 'grid',
-                              placeItems: 'center',
-                              mx: 'auto',
-                              mt: 0.5,
-                            }}
-                          >
-                            <Typography variant="subtitle2">
-                              {item.date}
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '50%',
-                              bgcolor: item.dot ? 'error.main' : 'transparent',
-                              mx: 'auto',
-                              mt: 0.5,
-                            }}
-                          />
-                        </Box>
-                      ))}
-                    </Box>
-                    <IconButton size="small">
-                      <ChevronRightIcon />
-                    </IconButton>
-                  </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-
             <Card elevation={0} sx={{ borderRadius: 4, boxShadow: 2 }}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                 <Stack spacing={2.5}>
