@@ -5,7 +5,7 @@ This is a Vite React app. AWS S3 should serve the generated `dist/` directory, n
 ## Prerequisites
 
 - AWS CLI v2 installed and authenticated.
-- An S3 bucket for the site, for example `ankor-training-frontend-prod`.
+- An S3 bucket for the site, for example `ankor-training-frontend-720936372175-prod`.
 - Production Vite environment variables available before building. Copy `.env.example` to `.env.production` and fill in the real values:
 
 ```bash
@@ -24,10 +24,10 @@ Replace the bucket name, region, and profile values with your AWS account detail
 
 ```bash
 aws s3api create-bucket \
-  --bucket ankor-training-frontend-prod \
+  --bucket ankor-training-frontend-720936372175-prod \
   --region us-east-1
 
-aws s3 website s3://ankor-training-frontend-prod \
+aws s3 website s3://ankor-training-frontend-720936372175-prod \
   --index-document index.html \
   --error-document index.html
 ```
@@ -43,7 +43,7 @@ For public S3 website hosting, disable Block Public Access for this bucket and a
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::ankor-training-frontend-prod/*"
+      "Resource": "arn:aws:s3:::ankor-training-frontend-720936372175-prod/*"
     }
   ]
 }
@@ -53,24 +53,43 @@ The `error-document index.html` setting is required because the app uses React R
 
 For production with HTTPS and a custom domain, put CloudFront in front of the bucket. Configure the CloudFront distribution to return `/index.html` for 403 and 404 errors.
 
+To find the CloudFront distribution id for this bucket:
+
+```powershell
+aws cloudfront list-distributions --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, 'ankor-training-frontend-720936372175-prod')].[Id,DomainName,Origins.Items[0].DomainName]" --output table
+```
+
 ## Deploy
 
 From the repo root:
 
 ```powershell
-.\scripts\deploy-s3.ps1 -Bucket ankor-training-frontend-prod -Region us-east-1
+.\scripts\deploy-s3.ps1 -Bucket ankor-training-frontend-720936372175-prod -Region us-east-1
 ```
 
 With a named AWS profile:
 
 ```powershell
-.\scripts\deploy-s3.ps1 -Bucket ankor-training-frontend-prod -Region us-east-1 -Profile my-profile
+.\scripts\deploy-s3.ps1 -Bucket ankor-training-frontend-720936372175-prod -Region us-east-1 -Profile my-profile
+```
+
+With CloudFront invalidation:
+
+```powershell
+.\scripts\deploy-s3.ps1 -Bucket ankor-training-frontend-720936372175-prod -Region us-east-1 -CloudFrontDistributionId YOUR_DISTRIBUTION_ID
+```
+
+Or use the CloudFront domain and let the script resolve the distribution id:
+
+```powershell
+.\scripts\deploy-s3.ps1 -Bucket ankor-training-frontend-720936372175-prod -Region us-east-1 -CloudFrontDomain d3m610der8nm7j.cloudfront.net
 ```
 
 Manual equivalent:
 
 ```bash
 npm run build
-aws s3 sync dist/ s3://ankor-training-frontend-prod --delete --region us-east-1
-aws s3 website s3://ankor-training-frontend-prod --index-document index.html --error-document index.html
+aws s3 sync dist/ s3://ankor-training-frontend-720936372175-prod --delete --region us-east-1
+aws s3 website s3://ankor-training-frontend-720936372175-prod --index-document index.html --error-document index.html
+aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
 ```
